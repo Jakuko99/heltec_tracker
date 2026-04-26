@@ -1,30 +1,14 @@
-#include <Arduino.h>
-#include "SPI.h"
-#include "SD.h"
-
-#include "HT_st7735.h"
-#include "HT_TinyGPS++.h"
-#include "gpx.h"
-
-#define REGION_EU868
-#define WIRELESS_TRACKER_V2
-
-#define PAD_UP 43
-#define PAD_DOWN 44
-#define PAD_LEFT 45
-#define PAD_RIGHT 46
-#define PAD_MIDDLE 4
-#define SD_CS 5
-#define GPS_ENABLE_PIN 3
-#define BATT_ADC A0 // ADC1_CH0
+#include "main.h"
 
 TinyGPSPlus GPS;
 GPX myGPX;
 File GpxFile;
 HT_st7735 disp;
+BoardConfig boardConfig;
 
 bool sd_card_init = false;
 int menu_item = 0;
+unsigned long prev_millis = 0;
 
 bool begin_tracking()
 {
@@ -97,19 +81,48 @@ void show_menu()
     // draw main screen
     break;
 
+  case 1:
+    // draw tracking screen
+    break;
+
   default:
     break;
   }
 }
 
+PadAction get_action()
+{
+  if (digitalRead(PAD_UP_PIN) == LOW)
+  {
+    return UP;
+  }
+  else if (digitalRead(PAD_DOWN_PIN) == LOW)
+  {
+    return DOWN;
+  }
+  else if (digitalRead(PAD_LEFT_PIN) == LOW)
+  {
+    return LEFT;
+  }
+  else if (digitalRead(PAD_RIGHT_PIN) == LOW)
+  {
+    return RIGHT;
+  }
+  else if (digitalRead(PAD_MIDDLE_PIN) == LOW)
+  {
+    return MIDDLE;
+  }
+  return NONE;
+}
+
 void setup()
 {
   // Setup buttons
-  pinMode(PAD_UP, INPUT_PULLUP);
-  pinMode(PAD_DOWN, INPUT_PULLUP);
-  pinMode(PAD_LEFT, INPUT_PULLUP);
-  pinMode(PAD_RIGHT, INPUT_PULLUP);
-  pinMode(PAD_MIDDLE, INPUT_PULLUP);
+  pinMode(PAD_UP_PIN, INPUT_PULLUP);
+  pinMode(PAD_DOWN_PIN, INPUT_PULLUP);
+  pinMode(PAD_LEFT_PIN, INPUT_PULLUP);
+  pinMode(PAD_RIGHT_PIN, INPUT_PULLUP);
+  pinMode(PAD_MIDDLE_PIN, INPUT_PULLUP);
 
   // Setup ADC for battery monitoring
   pinMode(BATT_ADC, INPUT);
@@ -132,10 +145,52 @@ void setup()
   }
   Serial.println("SD card success.");
   sd_card_init = true;
+
+  if (SD.exists("config.txt"))
+  {
+    File configFile = SD.open("config.txt", "r");
+    if (configFile)
+    {
+      // Read configuration from file
+      while (configFile.available())
+      {
+        String line = configFile.readStringUntil('\n');
+        line.trim();
+        if (line.startsWith("TRACKING_INTERVAL="))
+        {
+          boardConfig.tracking_interval = line.substring(18).toInt();
+        }
+        else if (line.startsWith("TRACKING_DISTANCE="))
+        {
+          boardConfig.tracking_distance = line.substring(18).toFloat();
+        }
+      }
+      configFile.close();
+      Serial.println("Config loaded.");
+    }
+    else
+    {
+      Serial.println("Failed to open config file.");
+    }
+  }
+  else
+  {
+    Serial.println("Config file not found. Using default settings.");
+  }
 }
 
 void loop()
 {
+  if (millis() - prev_millis > CYCLE_TIME)
+  {
+    prev_millis = millis();
+    PadAction action = get_action();
+    if (action != NONE)
+    {
+      // Handle button actions here
+      Serial.println("Button pressed: " + String(action));
+    }
+  }
   show_menu();
 
   if (Serial1.available() > 0)

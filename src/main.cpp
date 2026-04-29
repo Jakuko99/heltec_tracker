@@ -7,6 +7,7 @@ HT_st7735 disp;
 BoardConfig boardConfig;
 
 bool sd_card_init = false;
+bool tracking_active = false;
 int menu_item = 0;
 unsigned long prev_millis = 0;
 RoutePoint *last_point;
@@ -32,6 +33,7 @@ bool begin_tracking()
       GpxFile.println(myGPX.getInfo());
       GpxFile.println(myGPX.getTrakSegOpen());
       GpxFile.close();
+      tracking_active = true;
       return true;
     }
   }
@@ -44,7 +46,7 @@ bool track_point(float lat, float lon, float ele)
   if (sd_card_init)
   {
     GpxFile = SD.open(myGPX.getName() + ".gpx", "a");
-    if (GpxFile)
+    if (GpxFile && tracking_active)
     {
       if (last_point != nullptr)
       {
@@ -83,6 +85,7 @@ bool end_tracking()
 
       delete last_point; // clean up last point memory
       last_point = nullptr;
+      tracking_active = false;
       return true;
     }
   }
@@ -152,6 +155,11 @@ void show_menu()
   }
 }
 
+float read_battery_voltage()
+{
+  return analogRead(BATT_ADC) * 4.9;
+}
+
 PadAction get_action()
 {
   if (digitalRead(PAD_UP_PIN) == LOW)
@@ -177,6 +185,17 @@ PadAction get_action()
   return NONE;
 }
 
+void run_tasks(uint16_t interval_ms)
+{
+  unsigned long start = millis();
+
+  do
+  {
+    while (Serial1.available())
+      GPS.encode(Serial1.read());
+  } while (millis() - start < interval_ms);
+}
+
 void setup()
 {
   // Setup buttons
@@ -192,7 +211,7 @@ void setup()
   // Setup GPS
   pinMode(GPS_ENABLE_PIN, OUTPUT);
   digitalWrite(GPS_ENABLE_PIN, HIGH);
-  Serial1.begin(115200, SERIAL_8N1, 33, 34);
+  Serial1.begin(115200, SERIAL_8N1, GPS_RX, GPS_TX);
   Serial.begin(115200);
 
   // Setup display
@@ -264,29 +283,19 @@ void loop()
   }
   show_menu();
 
-  if (Serial1.available() > 0)
+  if (GPS.location.isUpdated())
   {
-    if (Serial1.peek() != '\n')
-    {
-      GPS.encode(Serial1.read());
-    }
-    else
-    {
-      Serial1.read();
+    disp.st7735_fill_screen(ST7735_BLACK);
+    disp.st7735_write_str(0, 0, "GPS_test");
+    String time_str = String(GPS.time.hour()) + ":" + String(GPS.time.minute()) + ":" + String(GPS.time.second()) + ":" + String(GPS.time.centisecond());
+    disp.st7735_write_str(0, 20, time_str);
+    String latitude = "LAT: " + String(GPS.location.lat());
+    disp.st7735_write_str(0, 40, latitude);
+    String longitude = "LON: " + String(GPS.location.lng());
+    disp.st7735_write_str(0, 60, longitude);
 
-      disp.st7735_fill_screen(ST7735_BLACK);
-      disp.st7735_write_str(0, 0, "GPS_test");
-      String time_str = String(GPS.time.hour()) + ":" + String(GPS.time.minute()) + ":" + String(GPS.time.second()) + ":" + String(GPS.time.centisecond());
-      disp.st7735_write_str(0, 20, time_str);
-      String latitude = "LAT: " + String(GPS.location.lat());
-      disp.st7735_write_str(0, 40, latitude);
-      String longitude = "LON: " + String(GPS.location.lng());
-      disp.st7735_write_str(0, 60, longitude);
-
-      Serial.printf("GPS Data: %f %f %f\n", GPS.location.lat(), GPS.location.lng(), GPS.altitude.meters());
-
-      while (Serial1.read() > 0)
-        ;
-    }
+    Serial.printf("GPS Data: %f %f %f\n", GPS.location.lat(), GPS.location.lng(), GPS.altitude.meters());
   }
+
+  run_tasks(1000); // Run GPS encoding and other tasks for 10 ms
 }

@@ -1,0 +1,56 @@
+#ifndef GPS_TRACKER_H
+#define GPS_TRACKER_H
+
+#include <Arduino.h>
+#include <SPI.h>
+#include <SD.h>
+#include "gpx.h"
+#include "HT_TinyGPS++.h"
+
+struct DateTime
+{
+    short year;
+    int8_t month;
+    int8_t day;
+    int8_t hour;
+    int8_t minute;
+    int8_t second;
+};
+
+struct RoutePoint
+{
+    float lat;
+    float lon;
+    float ele;
+    DateTime time;
+};
+
+class GPSTracker
+{
+public:
+    GPSTracker(TinyGPSPlus *gps);
+    GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interval, String track_desc);
+    void load_config(float track_distance, int track_interval, String track_desc);
+    bool begin_tracking();
+    bool track_point();
+    bool track_point(float lat, float lon, float ele);
+    bool end_tracking();
+    int time_between(DateTime start, DateTime end);
+    DateTime parse_time(String time_str);
+    String format_time(DateTime dt);
+    DateTime get_current_time();
+    void set_sd_card_init(bool init) { sd_card_init = init; }
+
+private:
+    RoutePoint *last_point = nullptr;
+    bool tracking_active = false;
+    bool sd_card_init = false;
+    float tracking_distance; // minimum distance in meters to log a new point
+    int tracking_interval;   // minimum time in seconds to log a new point
+    String track_desc;       // description for the track
+    GPX gpx_parser;
+    File GpxFile;
+    TinyGPSPlus *GPS;
+};
+
+#endif // GPS_TRACKER_H

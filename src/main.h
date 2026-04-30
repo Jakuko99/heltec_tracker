@@ -9,6 +9,8 @@
 #include "HT_TinyGPS++.h"
 #include "gpx.h"
 
+#include "gps_tracker.h"
+
 // Board definitions
 #define REGION_EU868
 #define WIRELESS_TRACKER_V2
@@ -45,35 +47,8 @@ struct BoardConfig // can be overwritten with values from config.txt on SD card
     String callsign = "NOCALL";
 };
 
-struct DateTime
-{
-    short year;
-    int8_t month;
-    int8_t day;
-    int8_t hour;
-    int8_t minute;
-    int8_t second;
-};
-
-struct RoutePoint
-{
-    float lat;
-    float lon;
-    float ele;
-    DateTime time;
-};
-
-// Tracking methods
-bool begin_tracking();
-bool track_point(float, float, float);
-bool end_tracking();
-int time_between(DateTime, DateTime);
-DateTime parse_time(String);
-String format_time(DateTime);
-DateTime get_current_time();
-
 // UI methods
-void show_menu();
+void render_screen();
 float read_battery_voltage();
 
 // Control methods

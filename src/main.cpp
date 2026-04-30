@@ -7,18 +7,41 @@ BoardConfig boardConfig;
 
 bool sd_card_init = false;
 int menu_item = 0;
+int cursor_pos = 0;
 unsigned long prev_millis = 0;
+DateTime last_gps_time;
+String time_str;
 
 void render_screen()
 {
   switch (menu_item)
   {
-  case 0:
-    // draw main screen
+  case 0: // draw main screen
+    disp.st7735_fill_screen(ST7735_BLACK);
+    last_gps_time = tracker.get_current_time();
+    time_str = String(last_gps_time.hour) + ":" + String(last_gps_time.minute) + ":" + String(last_gps_time.second);
+    disp.st7735_write_str(0, 0, time_str);
+
+    disp.st7735_write_str(0, 80, String(read_battery_voltage(), 1) + "V");
+    disp.st7735_write_str(20, 0, "Sat: " + String(GPS.satellites.value()));
     break;
 
-  case 1:
-    // draw tracking screen
+  case 1: // draw tracking screen
+
+    break;
+
+  case 2: // draw settings screen
+    for (int i = 0; i < 3; i++)
+    {
+      if (i == cursor_pos)
+      {
+        disp.st7735_write_str(0, 20 * i, "> " + String((MenuItems)i));
+      }
+      else
+      {
+        disp.st7735_write_str(0, 20 * i, "  " + String((MenuItems)i));
+      }
+    }
     break;
 
   default:
@@ -154,7 +177,7 @@ void loop()
       Serial.println("Button pressed: " + String(action));
     }
   }
-  render_screen();
+  // render_screen();
 
   if (GPS.location.isUpdated())
   {

@@ -39,6 +39,13 @@ enum PadAction
     MIDDLE
 };
 
+enum MenuItems
+{
+    START_TRACKING,
+    STOP_TRACKING,
+    VIEW_TRACKS,
+};
+
 struct BoardConfig // can be overwritten with values from config.txt on SD card
 {
     int tracking_interval = 60;     // s

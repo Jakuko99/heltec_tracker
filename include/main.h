@@ -25,7 +25,7 @@
 #define GPS_ENABLE_PIN 3
 #define GPS_RX 33
 #define GPS_TX 34
-#define BATT_ADC A0 // ADC1_CH0
+#define BATT_ADC 1 // ADC1_CH0
 
 #define CYCLE_TIME 100 // ms
 

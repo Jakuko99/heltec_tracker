@@ -2,6 +2,10 @@
 #define LORA_UTILS_H_
 
 #include <Arduino.h>
+#include <RadioLib.h>
+#include <SPI.h>
+
+#include "board_pinout.h"
 
 struct ReceivedLoRaPacket
 {

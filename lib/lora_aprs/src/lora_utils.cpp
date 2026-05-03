@@ -1,14 +1,5 @@
-#include <RadioLib.h>
-#include <logger.h>
-#include <SPI.h>
-#include "notification_utils.h"
-#include "configuration.h"
-#include "board_pinout.h"
 #include "lora_utils.h"
-#include "display.h"
 
-extern logging::Logger  logger;
-extern Configuration    Config;
 extern LoraType         *currentLoRaType;
 extern uint8_t          loraIndex;
 extern int              loraIndexSize;
@@ -79,9 +70,6 @@ namespace LoRa_Utils {
         currentLoRainfo += String(currentLoRaType->spreadingFactor);
         currentLoRainfo += " / CR: ";
         currentLoRainfo += String(currentLoRaType->codingRate4);
-
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "LoRa", currentLoRainfo.c_str());
-        displayShow("LORA FREQ>", "", "CHANGED TO: " + loraCountryFreq, "", "", "", 2000);
     }
 
     void setup() {
@@ -94,7 +82,6 @@ namespace LoRa_Utils {
             digitalWrite(RADIO_RXEN, LOW);  // start setup in Tx mode
         #endif
 
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "LoRa", "Set SPI pins!");
         #if defined(LIGHTTRACKER_PLUS_1_0)
             loraSPI.begin(RADIO_SCLK_PIN, RADIO_MISO_PIN, RADIO_MOSI_PIN, RADIO_CS_PIN);
         #else
@@ -168,12 +155,7 @@ namespace LoRa_Utils {
         }
     }
 
-    void sendNewPacket(const String& newPacket) {
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa Tx","---> %s", newPacket.c_str());
-        /*logger.log(logging::LoggerLevel::LOGGER_LEVEL_WARN, "LoRa","Send data: %s", newPacket.c_str());
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa","Send data: %s", newPacket.c_str());
-        logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "LoRa","Send data: %s", newPacket.c_str());*/
-
+    void sendNewPacket(const String& newPacket) {   
         if (Config.ptt.active) {
             digitalWrite(Config.ptt.io_pin, Config.ptt.reverse ? LOW : HIGH);
             delay(Config.ptt.preDelay);
@@ -236,8 +218,7 @@ namespace LoRa_Utils {
             } else {
                 int state = radio.readData(packet);
                 if (state == RADIOLIB_ERR_NONE) {
-                    if(!packet.isEmpty()) {
-                        logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa Rx","---> %s", packet.substring(3).c_str());
+                    if(!packet.isEmpty()) {                        
                         receivedLoraPacket.text       = packet;
                         receivedLoraPacket.rssi       = radio.getRSSI();
                         receivedLoraPacket.snr        = radio.getSNR();

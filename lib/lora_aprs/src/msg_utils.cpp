@@ -1,5 +1,4 @@
 #include <APRSPacketLib.h>
-#include <TinyGPS++.h>
 #include <SPIFFS.h>
 #include "notification_utils.h"
 #include "bluetooth_utils.h"

@@ -25,7 +25,7 @@ namespace LoRa_Utils
     ReceivedLoRaPacket receiveFromSleep();
     ReceivedLoRaPacket receivePacket();
     void sleepRadio();
-    SX1262 getRadio();
+    SX1262 *getRadio();
 }
 
 #endif

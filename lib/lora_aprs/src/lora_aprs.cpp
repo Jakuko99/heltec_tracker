@@ -1,5 +1,10 @@
 #include "lora_aprs.h"
 
+LoRaAPRS::LoRaAPRS() : gps(nullptr), loraInitialized(false), aprsClient(LoRa_Utils::getRadio())
+{
+    loraInitialized = LoRa_Utils::setup();
+}
+
 void LoRaAPRS::init(String _callsign, String _symbol, String _status = "")
 {
     Utils::setCallsign(_callsign);
@@ -7,7 +12,8 @@ void LoRaAPRS::init(String _callsign, String _symbol, String _status = "")
     Utils::setStatus(_status);
 
     loraInitialized = LoRa_Utils::setup();
-    aprsClient = APRSClient(&LoRa_Utils::getRadio());
+    aprsClient = APRSClient(LoRa_Utils::getRadio());
+    aprsClient.begin(_symbol.charAt(0), _callsign.c_str(), 1, false);
 }
 
 bool LoRaAPRS::send_location()
@@ -19,14 +25,14 @@ bool LoRaAPRS::send_location()
 
     if (gps->location.isValid())
     {
-    
+
         LoRa_Utils::changeFreq();
-        char* lat = (char*)String(gps->location.lat()).c_str();
-        char* lon = (char*)String(gps->location.lng()).c_str();
-        char* callsign = (char*)Utils::getCallsign().c_str();
-        char* status = (char*)Utils::getStatus().c_str();
-        char* time = (char*)String(gps->time.value()).c_str();
-        int state = aprsClient.sendPosition(callsign, 1, lat, lon, status, time);
+        char *lat = (char *)String(String(gps->location.lat()) + ((gps->location.lat() > 0) ? "N" : "S")).c_str();
+        char *lon = (char *)String(String(gps->location.lng()) + ((gps->location.lng() > 0) ? "E" : "W")).c_str();
+        char *dest = (char *)String("GPS").c_str();
+        char *status = (char *)Utils::getStatus().c_str();
+        char *time = (char *)_get_time().c_str();
+        int state = aprsClient.sendPosition(dest, 1, lat, lon, status, time);
         if (state == RADIOLIB_ERR_NONE)
         {
             // Serial.println(F("success!"));
@@ -44,110 +50,15 @@ bool LoRaAPRS::send_location()
         return false;
     }
 }
-/*
-void loop()
+
+String LoRaAPRS::_get_time()
 {
-    currentBeacon = &Config.beacons[myBeaconsIndex];
-    if (statusUpdate)
+    if (gps->time.isValid())
     {
-        if (APRSPacketLib::checkNocall(currentBeacon->callsign))
-        {
-            logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "Config", "Change your callsigns in WebConfig");
-            displayShow("ERROR", "Callsigns = NOCALL!", "---> change it !!!", 2000);
-            KEYBOARD_Utils::rightArrow();
-            currentBeacon = &Config.beacons[myBeaconsIndex];
-        }
-        miceActive = APRSPacketLib::validateMicE(currentBeacon->micE);
-    }
-
-    SMARTBEACON_Utils::checkSettings(currentBeacon->smartBeaconSetting);
-    SMARTBEACON_Utils::checkState();
-
-    BATTERY_Utils::monitor();
-    Utils::checkDisplayEcoMode();
-
-#ifdef BUTTON_PIN
-    BUTTON_Utils::loop();
-#endif
-    KEYBOARD_Utils::read();
-#ifdef HAS_JOYSTICK
-    JOYSTICK_Utils::loop();
-#endif
-#ifdef HAS_TOUCHSCREEN
-    TOUCH_Utils::loop();
-#endif
-
-    ReceivedLoRaPacket packet = LoRa_Utils::receivePacket();
-
-    MSG_Utils::checkReceivedMessage(packet);
-    MSG_Utils::processOutputBuffer();
-    MSG_Utils::clean15SegBuffer();
-
-    if (bluetoothActive && bluetoothConnected)
-    {
-        if (Config.bluetooth.useBLE)
-        {
-            BLE_Utils::sendToPhone(packet.text.substring(3));
-            BLE_Utils::sendToLoRa();
-        }
-        else
-        {
-#ifdef HAS_BT_CLASSIC
-            BLUETOOTH_Utils::sendToPhone(packet.text.substring(3));
-            BLUETOOTH_Utils::sendToLoRa();
-#endif
-        }
-    }
-
-    MSG_Utils::ledNotification();
-    Utils::checkFlashlight();
-    STATION_Utils::checkListenedStationsByTimeAndDelete();
-
-    lastTx = millis() - lastTxTime;
-    if (gpsIsActive)
-    {
-        GPS_Utils::getData();
-        bool gps_time_update = gps.time.isUpdated();
-        bool gps_loc_update = gps.location.isUpdated();
-        GPS_Utils::setDateFromData();
-
-        int currentSpeed = (int)gps.speed.kmph();
-
-        if (gps_loc_update)
-            Utils::checkStatus();
-
-        if (!sendUpdate && gps_loc_update && smartBeaconActive)
-        {
-            GPS_Utils::calculateDistanceTraveled();
-            if (!sendUpdate)
-                GPS_Utils::calculateHeadingDelta(currentSpeed);
-            STATION_Utils::checkStandingUpdateTime();
-        }
-        SMARTBEACON_Utils::checkFixedBeaconTime();
-        if (sendUpdate && gps_loc_update)
-            STATION_Utils::sendBeacon();
-        if (gps_time_update)
-            SMARTBEACON_Utils::checkInterval(currentSpeed);
-
-        if (millis() - refreshDisplayTime >= 1000 || gps_time_update)
-        {
-            GPS_Utils::checkStartUpFrames();
-            MENU_Utils::showOnScreen();
-            refreshDisplayTime = millis();
-        }
-        SLEEP_Utils::checkIfGPSShouldSleep();
+        return String(gps->time.hour()) + String(gps->time.minute()) + String(gps->time.second()) + "z";
     }
     else
     {
-        if (millis() - lastGPSTime > txInterval)
-        {
-            SLEEP_Utils::gpsWakeUp();
-        }
-        STATION_Utils::checkStandingUpdateTime();
-        if (millis() - refreshDisplayTime >= 1000)
-        {
-            MENU_Utils::showOnScreen();
-            refreshDisplayTime = millis();
-        }
+        return "0z";
     }
-}*/
+}

@@ -149,6 +149,13 @@ void setup()
         else if (line.startsWith("CALLSIGN="))
         {
           boardConfig.callsign = line.substring(9);
+        } else if (line.startsWith("SYMBOL="))
+        {
+          boardConfig.symbol = line.substring(7);
+        }
+        else if (line.startsWith("STATUS="))
+        {
+          boardConfig.status = line.substring(7);
         }
       }
       configFile.close();
@@ -179,6 +186,10 @@ void loop()
     {
       // Handle button actions here
       Serial.println("Button pressed: " + String(action));
+      if (action == UP && GPS.location.isValid())
+      {
+        aprs.send_location();
+      }
     }
   }
   // render_screen();

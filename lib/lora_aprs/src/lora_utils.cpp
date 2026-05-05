@@ -13,9 +13,9 @@ SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUS
 
 namespace LoRa_Utils
 {
-    SX1262 getRadio()
+    SX1262 *getRadio()
     {
-        return radio;
+        return &radio;
     }
 
     void setFlag(void)

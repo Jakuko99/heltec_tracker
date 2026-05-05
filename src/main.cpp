@@ -2,6 +2,7 @@
 
 TinyGPSPlus GPS;
 GPSTracker tracker(&GPS);
+LoRaAPRS aprs;
 HT_st7735 disp;
 BoardConfig boardConfig;
 
@@ -163,6 +164,8 @@ void setup()
   {
     Serial.println("Config file not found. Using default settings.");
   }
+
+  aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
 }
 
 void loop()

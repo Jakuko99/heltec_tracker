@@ -12,6 +12,11 @@ namespace Utils
     void setCallsign(String _callsign);
     void setStatus(String _status);
     void setSymbol(String _symbol);
+
+    String getCallsign();
+    String getStatus();
+    String getSymbol();
+    String getPath();
 }
 
 #endif

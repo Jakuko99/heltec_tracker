@@ -129,4 +129,24 @@ namespace Utils
     {
         symbol = _symbol;
     }
+
+    String getCallsign()
+    {
+        return callsign;
+    }
+
+    String getStatus()
+    {
+        return status;
+    }
+
+    String getSymbol()
+    {
+        return symbol;
+    }
+
+    String getPath()
+    {
+        return path;
+    }
 }

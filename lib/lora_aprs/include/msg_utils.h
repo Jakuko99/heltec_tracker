@@ -2,8 +2,15 @@
 #define MSG_UTILS_H_
 
 #include <Arduino.h>
+#include <SPIFFS.h>
 #include "lora_utils.h"
 #include "HT_TinyGPS++.h"
+#include <APRSPacketLib.h>
+#include <vector>
+
+#include "board_pinout.h"
+#include "lora_utils.h"
+#include "utils.h"
 
 struct Packet15SegBuffer
 {

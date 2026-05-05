@@ -1,67 +1,37 @@
 #include "lora_utils.h"
 
-extern LoraType         *currentLoRaType;
-extern uint8_t          loraIndex;
-extern int              loraIndexSize;
+uint8_t loraIndex = 1;
+int loraIndexSize = 1;
 
-bool operationDone   = true;
-bool transmitFlag    = true;
+bool operationDone = true;
+bool transmitFlag = true;
 
 #if defined(HAS_SX1262)
-    SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
-#endif
-#if defined(HAS_SX1268)
-    #if defined(LIGHTTRACKER_PLUS_1_0)
-        SPIClass loraSPI(FSPI);
-        SX1268 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN, loraSPI);
-    #else
-        SX1268 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
-    #endif
-#endif
-#if defined(HAS_SX1278)
-    SX1278 radio = new Module(RADIO_CS_PIN, RADIO_BUSY_PIN, RADIO_RST_PIN);
-#endif
-#if defined(HAS_SX1276)
-    SX1276 radio = new Module(RADIO_CS_PIN, RADIO_BUSY_PIN, RADIO_RST_PIN);
-#endif
-#if defined(HAS_LLCC68) //  LLCC68 supports spreading factor only in range of 5-11!
-    LLCC68 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
+LoraType *currentLoRaType = new LoraType{869618000, 8, 62500, 5, 10}; // default LoRa settings for SX1262
+SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
 #endif
 
-namespace LoRa_Utils {
+namespace LoRa_Utils
+{
 
-    void setFlag(void) {
+    void setFlag(void)
+    {
         operationDone = true;
     }
 
-    void changeFreq() {
-        if(loraIndex >= (loraIndexSize - 1)) {
-            loraIndex = 0;
-        } else {
-            loraIndex++;
-        }
-        currentLoRaType = &Config.loraTypes[loraIndex];
-
-        float freq = (float)currentLoRaType->frequency/1000000;
+    void changeFreq()
+    {
+        float freq = (float)currentLoRaType->frequency / 1000000;
         radio.setFrequency(freq);
         radio.setSpreadingFactor(currentLoRaType->spreadingFactor);
-        float signalBandwidth = currentLoRaType->signalBandwidth/1000;
+        float signalBandwidth = currentLoRaType->signalBandwidth / 1000;
         radio.setBandwidth(signalBandwidth);
         radio.setCodingRate(currentLoRaType->codingRate4);
-        #if (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
-            radio.setOutputPower(currentLoRaType->power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
-        #endif
-        #if defined(HAS_SX1278) || defined(HAS_SX1276) || defined(HAS_1W_LORA)
-            radio.setOutputPower(currentLoRaType->power);
-        #endif
+#if (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
+        radio.setOutputPower(currentLoRaType->power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
+#endif
 
-        String loraCountryFreq;
-        switch (loraIndex) {
-            case 0: loraCountryFreq = "EU/WORLD"; break;
-            case 1: loraCountryFreq = "POLAND"; break;
-            case 2: loraCountryFreq = "UK"; break;
-            case 3: loraCountryFreq = "US"; break;
-        }
+        String loraCountryFreq = "EU/UK";
         String currentLoRainfo = "LoRa ";
         currentLoRainfo += loraCountryFreq;
         currentLoRainfo += " / Freq: ";
@@ -72,160 +42,130 @@ namespace LoRa_Utils {
         currentLoRainfo += String(currentLoRaType->codingRate4);
     }
 
-    void setup() {
-        #if defined(LIGHTTRACKER_PLUS_1_0) || defined(TTGO_T_BEAM_1W)
-            pinMode(RADIO_VCC_PIN,OUTPUT);
-            digitalWrite(RADIO_VCC_PIN,HIGH);
-        #endif
-        #if defined(TTGO_T_BEAM_1W)
-            pinMode(RADIO_RXEN, OUTPUT);
-            digitalWrite(RADIO_RXEN, LOW);  // start setup in Tx mode
-        #endif
+    void setup()
+    {
 
-        #if defined(LIGHTTRACKER_PLUS_1_0)
-            loraSPI.begin(RADIO_SCLK_PIN, RADIO_MISO_PIN, RADIO_MOSI_PIN, RADIO_CS_PIN);
-        #else
-            SPI.begin(RADIO_SCLK_PIN, RADIO_MISO_PIN, RADIO_MOSI_PIN);
-        #endif
-        float freq = (float)currentLoRaType->frequency/1000000;
-        #if defined(RADIO_HAS_XTAL)
-            radio.XTAL = true;
-        #endif
+#if defined(LIGHTTRACKER_PLUS_1_0)
+        loraSPI.begin(RADIO_SCLK_PIN, RADIO_MISO_PIN, RADIO_MOSI_PIN, RADIO_CS_PIN);
+#else
+        SPI.begin(RADIO_SCLK_PIN, RADIO_MISO_PIN, RADIO_MOSI_PIN);
+#endif
+        float freq = (float)currentLoRaType->frequency / 1000000;
         int state = radio.begin(freq);
-        if (state == RADIOLIB_ERR_NONE) {
-            #if defined(HAS_SX1262) || defined(HAS_SX1268)
-            logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Initializing SX126X ...");
-            #else
-            logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Initializing SX127X ...");
-            #endif
-        } else {
-            logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa", "Starting LoRa failed! State: %d", state);
-            while (true);
+        if (state == RADIOLIB_ERR_NONE)
+        {
+#if defined(HAS_SX1262) || defined(HAS_SX1268)
+            // logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Initializing SX126X ...");
+#endif
         }
-        #if defined(HAS_SX1262) || defined(HAS_SX1268) || defined(HAS_LLCC68)
-            radio.setDio1Action(setFlag);
-        #endif
-        #if defined(HAS_SX1278) || defined(HAS_SX1276)
-            radio.setDio0Action(setFlag, RISING);
-        #endif
+        else
+        {
+            /// logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa", "Starting LoRa failed! State: %d", state);
+            while (true)
+                ;
+        }
+#if defined(HAS_SX1262) || defined(HAS_SX1268) || defined(HAS_LLCC68)
+        radio.setDio1Action(setFlag);
+#endif
         radio.setSpreadingFactor(currentLoRaType->spreadingFactor);
-        float signalBandwidth = currentLoRaType->signalBandwidth/1000;
+        float signalBandwidth = currentLoRaType->signalBandwidth / 1000;
         radio.setBandwidth(signalBandwidth);
         radio.setCodingRate(currentLoRaType->codingRate4);
         radio.setCRC(true);
 
-        #if defined(RADIO_RXEN) && defined(RADIO_TXEN)
-            radio.setRfSwitchPins(RADIO_RXEN, RADIO_TXEN);
-        #endif
-        #if defined(TTGO_T_BEAM_1W)
-            radio.setRfSwitchPins(RADIO_RXEN, RADIOLIB_NC);
-        #endif
+#if (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
+        state = radio.setOutputPower(currentLoRaType->power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
+        radio.setCurrentLimit(140);
+#endif
 
-        #ifdef HAS_1W_LORA  // Ebyte E22 400M30S (SX1268) / 900M30S (SX1262) / Ebyte E220 400M30S (LLCC68)
-            state = radio.setOutputPower(currentLoRaType->power); // max value 20 (when 20dB in setup 30dB in output as 400M30S has Low Noise Amp)
-            radio.setCurrentLimit(140); // to be validated (100 , 120, 140)?
-        #endif
+#if defined(HAS_SX1262) || defined(HAS_SX1268) || defined(HAS_LLCC68)
+        radio.setRxBoostedGainMode(true);
+#endif
 
-        #if (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
-            state = radio.setOutputPower(currentLoRaType->power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
-            radio.setCurrentLimit(140);
-        #endif
-
-        #if defined(HAS_SX1278) || defined(HAS_SX1276)
-            state = radio.setOutputPower(currentLoRaType->power);
-            radio.setCurrentLimit(100); // to be validated (80 , 100)?
-        #endif
-
-        #if defined(HAS_SX1262) || defined(HAS_SX1268) || defined(HAS_LLCC68)
-            radio.setRxBoostedGainMode(true);
-        #endif
-
-        #if defined(HAS_TCXO) && !defined(HAS_1W_LORA)
-            radio.setDio2AsRfSwitch();
-        #endif
-        #ifdef HAS_TCXO
-            radio.setTCXO(1.8);
-        #endif
-
-        if (state == RADIOLIB_ERR_NONE) {
-            logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "LoRa init done!");
-        } else {
-            logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa", "Starting LoRa failed! State: %d", state);
-            while (true);
+        if (state == RADIOLIB_ERR_NONE)
+        {
+            // logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "LoRa init done!");
+        }
+        else
+        {
+            // logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa", "Starting LoRa failed! State: %d", state);
+            while (true)
+                ;
         }
     }
 
-    void sendNewPacket(const String& newPacket) {   
-        if (Config.ptt.active) {
+    void sendNewPacket(const String &newPacket)
+    {
+        /*if (Config.ptt.active)
+        {
             digitalWrite(Config.ptt.io_pin, Config.ptt.reverse ? LOW : HIGH);
             delay(Config.ptt.preDelay);
-        }
-        if (Config.notification.ledTx) digitalWrite(Config.notification.ledTxPin, HIGH);
-        if (Config.notification.buzzerActive && Config.notification.txBeep) NOTIFICATION_Utils::beaconTxBeep();
-
-        #if defined(TTGO_T_BEAM_1W)
-            digitalWrite(RADIO_RXEN, LOW);
-        #endif
+        }*/
         int state = radio.transmit("\x3c\xff\x01" + newPacket);
         transmitFlag = true;
-        if (state == RADIOLIB_ERR_NONE) {
-            //Serial.println(F("success!"));
-        } else {
+        if (state == RADIOLIB_ERR_NONE)
+        {
+            // Serial.println(F("success!"));
+        }
+        else
+        {
             Serial.print(F("Tx failed, code "));
             Serial.println(state);
         }
-
-        if (Config.notification.ledTx) digitalWrite(Config.notification.ledTxPin, LOW);
-        if (Config.ptt.active) {
-            delay(Config.ptt.postDelay);
-            digitalWrite(Config.ptt.io_pin, Config.ptt.reverse ? HIGH : LOW);
-        }
     }
 
-    void wakeRadio() {
+    void wakeRadio()
+    {
         radio.startReceive();
     }
 
-    ReceivedLoRaPacket receiveFromSleep() {
+    ReceivedLoRaPacket receiveFromSleep()
+    {
         ReceivedLoRaPacket receivedLoraPacket;
         String packet = "";
-        #if defined(TTGO_T_BEAM_1W)
-            digitalWrite(RADIO_RXEN, HIGH);
-        #endif
         int state = radio.readData(packet);
-        if (state == RADIOLIB_ERR_NONE) {
-            receivedLoraPacket.text       = packet;
-            receivedLoraPacket.rssi       = radio.getRSSI();
-            receivedLoraPacket.snr        = radio.getSNR();
-            receivedLoraPacket.freqError  = radio.getFrequencyError();
-        } else {
+        if (state == RADIOLIB_ERR_NONE)
+        {
+            receivedLoraPacket.text = packet;
+            receivedLoraPacket.rssi = radio.getRSSI();
+            receivedLoraPacket.snr = radio.getSNR();
+            receivedLoraPacket.freqError = radio.getFrequencyError();
+        }
+        else
+        {
             //
         }
         return receivedLoraPacket;
     }
 
-    ReceivedLoRaPacket receivePacket() {
+    ReceivedLoRaPacket receivePacket()
+    {
         ReceivedLoRaPacket receivedLoraPacket;
         String packet = "";
-        if (operationDone) {
+        if (operationDone)
+        {
             operationDone = false;
-            if (transmitFlag) {
-                #if defined(TTGO_T_BEAM_1W)
-                    digitalWrite(RADIO_RXEN, HIGH);
-                #endif
+            if (transmitFlag)
+            {
                 radio.startReceive();
                 transmitFlag = false;
-            } else {
+            }
+            else
+            {
                 int state = radio.readData(packet);
-                if (state == RADIOLIB_ERR_NONE) {
-                    if(!packet.isEmpty()) {                        
-                        receivedLoraPacket.text       = packet;
-                        receivedLoraPacket.rssi       = radio.getRSSI();
-                        receivedLoraPacket.snr        = radio.getSNR();
-                        receivedLoraPacket.freqError  = radio.getFrequencyError();
+                if (state == RADIOLIB_ERR_NONE)
+                {
+                    if (!packet.isEmpty())
+                    {
+                        receivedLoraPacket.text = packet;
+                        receivedLoraPacket.rssi = radio.getRSSI();
+                        receivedLoraPacket.snr = radio.getSNR();
+                        receivedLoraPacket.freqError = radio.getFrequencyError();
                     }
-                } else {
-                    Serial.print(F("Rx failed, code "));   // 7 = CRC mismatch
+                }
+                else
+                {
+                    Serial.print(F("Rx failed, code ")); // 7 = CRC mismatch
                     Serial.println(state);
                 }
             }
@@ -233,8 +173,8 @@ namespace LoRa_Utils {
         return receivedLoraPacket;
     }
 
-    void sleepRadio() {
+    void sleepRadio()
+    {
         radio.sleep();
     }
-
 }

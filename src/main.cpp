@@ -166,6 +166,7 @@ void setup()
   }
 
   aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
+  aprs.assign_gps(&GPS);
 }
 
 void loop()

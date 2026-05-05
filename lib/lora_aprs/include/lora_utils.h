@@ -19,12 +19,13 @@ namespace LoRa_Utils
 {
     void setFlag();
     void changeFreq();
-    void setup();
+    bool setup();
     void sendNewPacket(const String &newPacket);
     void wakeRadio();
     ReceivedLoRaPacket receiveFromSleep();
     ReceivedLoRaPacket receivePacket();
     void sleepRadio();
+    SX1262 getRadio();
 }
 
 #endif

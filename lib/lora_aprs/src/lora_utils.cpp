@@ -13,6 +13,10 @@ SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUS
 
 namespace LoRa_Utils
 {
+    SX1262 getRadio()
+    {
+        return radio;
+    }
 
     void setFlag(void)
     {
@@ -42,7 +46,7 @@ namespace LoRa_Utils
         currentLoRainfo += String(currentLoRaType->codingRate4);
     }
 
-    void setup()
+    bool setup()
     {
 
 #if defined(LIGHTTRACKER_PLUS_1_0)
@@ -81,17 +85,7 @@ namespace LoRa_Utils
 #if defined(HAS_SX1262) || defined(HAS_SX1268) || defined(HAS_LLCC68)
         radio.setRxBoostedGainMode(true);
 #endif
-
-        if (state == RADIOLIB_ERR_NONE)
-        {
-            // logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "LoRa init done!");
-        }
-        else
-        {
-            // logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa", "Starting LoRa failed! State: %d", state);
-            while (true)
-                ;
-        }
+        return (state == RADIOLIB_ERR_NONE);
     }
 
     void sendNewPacket(const String &newPacket)

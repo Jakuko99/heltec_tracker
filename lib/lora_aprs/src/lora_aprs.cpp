@@ -6,126 +6,45 @@ void LoRaAPRS::init(String _callsign, String _symbol, String _status = "")
     Utils::setSymbol(_symbol);
     Utils::setStatus(_status);
 
-    LoRa_Utils::setup();
+    loraInitialized = LoRa_Utils::setup();
+    aprsClient = APRSClient(&LoRa_Utils::getRadio());
 }
-/*
-String versionDate = "2026-04-22";
-String versionNumber = "2.4.3.2";
-Configuration Config;
-HardwareSerial gpsSerial(1);
-TinyGPSPlus gps;
-#ifdef HAS_BT_CLASSIC
-BluetoothSerial SerialBT;
-#endif
 
-uint8_t myBeaconsIndex = 0;
-int myBeaconsSize = Config.beacons.size();
-Beacon *currentBeacon = &Config.beacons[myBeaconsIndex];
-uint8_t loraIndex = 0;
-int loraIndexSize = Config.loraTypes.size();
-LoraType *currentLoRaType = &Config.loraTypes[loraIndex];
-
-int menuDisplay = 100;
-uint32_t menuTime = millis();
-
-bool statusUpdate = true;
-bool displayEcoMode = Config.display.ecoMode;
-bool displayState = true;
-uint32_t displayTime = millis();
-uint32_t refreshDisplayTime = millis();
-
-bool sendUpdate = true;
-
-bool bluetoothActive = Config.bluetooth.active;
-bool bluetoothConnected = false;
-
-uint32_t lastTx = 0.0;
-uint32_t txInterval = 60000L;
-uint32_t lastTxTime = 0;
-double lastTxLat = 0.0;
-double lastTxLng = 0.0;
-double lastTxDistance = 0.0;
-
-bool flashlight = false;
-bool digipeaterActive = false;
-bool sosActive = false;
-
-bool miceActive = false;
-
-bool smartBeaconActive = true;
-
-uint32_t lastGPSTime = 0;
-
-APRSPacket lastReceivedPacket;
-
-logging::Logger logger;
-// #define DEBUG
-
-extern bool gpsIsActive;
-
-void setup()
+bool LoRaAPRS::send_location()
 {
-    Serial.begin(115200);
-
-#ifndef DEBUG
-    logger.setDebugLevel(logging::LoggerLevel::LOGGER_LEVEL_INFO);
-#endif
-
-    POWER_Utils::setup();
-    displaySetup();
-    POWER_Utils::externalPinSetup();
-
-    STATION_Utils::loadIndex(0); // callsign Index
-    STATION_Utils::loadIndex(1); // lora freq settins Index
-    STATION_Utils::nearStationInit();
-    startupScreen(loraIndex, versionDate);
-
-    WIFI_Utils::checkIfWiFiAP();
-
-    MSG_Utils::loadNumMessages();
-    GPS_Utils::setup();
-    currentLoRaType = &Config.loraTypes[loraIndex];
-    LoRa_Utils::setup();
-    Utils::i2cScannerForPeripherals();
-    WX_Utils::setup();
-
-    WiFi.mode(WIFI_OFF);
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Main", "WiFi controller stopped");
-
-    if (bluetoothActive)
+    if (!loraInitialized)
     {
-        if (Config.bluetooth.useBLE)
+        return false;
+    }
+
+    if (gps->location.isValid())
+    {
+    
+        LoRa_Utils::changeFreq();
+        char* lat = (char*)String(gps->location.lat()).c_str();
+        char* lon = (char*)String(gps->location.lng()).c_str();
+        char* callsign = (char*)Utils::getCallsign().c_str();
+        char* status = (char*)Utils::getStatus().c_str();
+        char* time = (char*)String(gps->time.value()).c_str();
+        int state = aprsClient.sendPosition(callsign, 1, lat, lon, status, time);
+        if (state == RADIOLIB_ERR_NONE)
         {
-            BLE_Utils::setup();
+            // Serial.println(F("success!"));
         }
         else
         {
-#ifdef HAS_BT_CLASSIC
-            BLUETOOTH_Utils::setup();
-#endif
+            Serial.print(F("Tx failed, code "));
+            Serial.println(state);
         }
+        return state == RADIOLIB_ERR_NONE;
     }
-
-#ifdef BUTTON_PIN
-    BUTTON_Utils::setup();
-#endif
-#ifdef HAS_JOYSTICK
-    JOYSTICK_Utils::setup();
-#endif
-    KEYBOARD_Utils::setup();
-#ifdef HAS_TOUCHSCREEN
-    TOUCH_Utils::setup();
-#endif
-
-    esp_random();
-    randomSeed(esp_random());
-
-    POWER_Utils::lowerCpuFrequency();
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Main", "Smart Beacon is: %s", Utils::getSmartBeaconState());
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Setup Done!");
-    menuDisplay = 0;
+    else
+    {
+        Serial.println("GPS location not valid. Cannot send APRS packet.");
+        return false;
+    }
 }
-
+/*
 void loop()
 {
     currentBeacon = &Config.beacons[myBeaconsIndex];

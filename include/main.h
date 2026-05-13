@@ -55,6 +55,8 @@ struct BoardConfig // can be overwritten with values from config.txt on SD card
     String callsign = "NOCALL";
     String symbol = "[";
     String status = "";
+    int position_report_interval = 300; // s
+    bool position_reports_enabled = false;
 };
 
 // UI methods

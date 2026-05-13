@@ -149,7 +149,8 @@ void setup()
         else if (line.startsWith("CALLSIGN="))
         {
           boardConfig.callsign = line.substring(9);
-        } else if (line.startsWith("SYMBOL="))
+        }
+        else if (line.startsWith("SYMBOL="))
         {
           boardConfig.symbol = line.substring(7);
         }
@@ -157,8 +158,13 @@ void setup()
         {
           boardConfig.status = line.substring(7);
         }
+        else if (line.startsWith("POSITION_REPORT_INTERVAL="))
+        {
+          boardConfig.position_report_interval = line.substring(24).toInt();
+        }
       }
       configFile.close();
+      boardConfig.position_reports_enabled = ((boardConfig.position_report_interval > 0) && (boardConfig.callsign != "NOCALL"));
       Serial.println("Config loaded.");
       tracker.load_config(boardConfig.tracking_distance, boardConfig.tracking_interval, boardConfig.track_desc);
     }
@@ -174,6 +180,9 @@ void setup()
 
   aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
   aprs.assign_gps(&GPS);
+
+  disp.st7735_write_str(20, 0, "Welcome,", Font_16x26);
+  disp.st7735_write_str(20, 30, (boardConfig.callsign != "NOCALL") ? boardConfig.callsign : "User");
 }
 
 void loop()

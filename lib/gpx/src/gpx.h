@@ -27,6 +27,8 @@
 #define _GPX_SRC_TAIL "</src>\n"
 #define _GPX_TIME_HEAD "<time>"
 #define _GPX_TIME_TAIL "</time>\n"
+#define _GPX_NUM_SAT_HEAD "<sat>"
+#define _GPX_NUM_SAT_TAIL "</sat>\n"
 
 // 'Public' Tags
 #define GPX_TRKPT "trkpt"
@@ -49,6 +51,7 @@ public:
   String getPt(String typ, String lon, String lat);
   String getPt(String typ, String lon, String lat, String ele);
   String getPt(String typ, String lon, String lat, String ele, String time);
+  String getPt(String typ, String lon, String lat, String ele, String time, String num_sat);
   void setMetaName(String name);
   void setMetaDesc(String desc);
   void setName(String name);
@@ -56,6 +59,7 @@ public:
   void setEle(String ele);
   void setSym(String sym);
   void setSrc(String src);
+  void setNumSat(String num_sat);
   void setTime(String time);
 
 private:
@@ -68,6 +72,7 @@ private:
   String _sym;
   String _src;
   String _time;
+  String _num_sat;
 
   // Functions
   String wrapCDATA(String input);

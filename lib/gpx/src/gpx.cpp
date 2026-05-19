@@ -75,7 +75,7 @@ String GPX::getInfo()
 
 String GPX::getName()
 {
-    return _name;
+  return _name;
 }
 
 String GPX::getPt(String typ, String lon, String lat)
@@ -90,10 +90,17 @@ String GPX::getPt(String typ, String lon, String lat)
     localStr += _ele;
     localStr += _GPX_ELE_TAIL;
   }
-  if (_time.length() > 0){
+  if (_time.length() > 0)
+  {
     localStr += _GPX_TIME_HEAD;
     localStr += _time;
     localStr += _GPX_TIME_TAIL;
+  }
+  if (_num_sat.length() > 0)
+  {
+    localStr += _GPX_NUM_SAT_HEAD;
+    localStr += _num_sat;
+    localStr += _GPX_NUM_SAT_TAIL;
   }
   if (_sym.length() > 0)
   {
@@ -121,9 +128,17 @@ String GPX::getPt(String typ, String lon, String lat, String ele)
 
 String GPX::getPt(String typ, String lon, String lat, String ele, String time)
 {
-    setEle(ele);
-    setTime(time);
-    return getPt(typ, lon, lat);
+  setEle(ele);
+  setTime(time);
+  return getPt(typ, lon, lat);
+}
+
+String GPX::getPt(String typ, String lon, String lat, String ele, String time, String num_sat)
+{
+  setEle(ele);
+  setTime(time);
+  setNumSat(num_sat);
+  return getPt(typ, lon, lat);
 }
 
 // Set Methods
@@ -154,6 +169,11 @@ void GPX::setSym(String sym)
 void GPX::setSrc(String src)
 {
   _src = src;
+}
+
+void GPX::setNumSat(String num_sat)
+{
+  _num_sat = num_sat;
 }
 
 void GPX::setTime(String time)

@@ -29,6 +29,8 @@
 #define _GPX_TIME_TAIL "</time>\n"
 #define _GPX_NUM_SAT_HEAD "<sat>"
 #define _GPX_NUM_SAT_TAIL "</sat>\n"
+#define _GPX_HORIZONTAL_ACCURACY_HEAD "<hdop>"
+#define _GPX_HORIZONTAL_ACCURACY_TAIL "</hdop>\n"
 
 // 'Public' Tags
 #define GPX_TRKPT "trkpt"
@@ -52,6 +54,7 @@ public:
   String getPt(String typ, String lon, String lat, String ele);
   String getPt(String typ, String lon, String lat, String ele, String time);
   String getPt(String typ, String lon, String lat, String ele, String time, String num_sat);
+  String getPt(String typ, String lon, String lat, String ele, String time, String num_sat, String horizontal_accuracy);
   void setMetaName(String name);
   void setMetaDesc(String desc);
   void setName(String name);
@@ -60,6 +63,7 @@ public:
   void setSym(String sym);
   void setSrc(String src);
   void setNumSat(String num_sat);
+  void setHorizontalAccuracy(String horizontal_accuracy);
   void setTime(String time);
 
 private:
@@ -73,6 +77,7 @@ private:
   String _src;
   String _time;
   String _num_sat;
+  String _horizontal_accuracy;
 
   // Functions
   String wrapCDATA(String input);

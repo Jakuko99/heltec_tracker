@@ -102,6 +102,12 @@ String GPX::getPt(String typ, String lon, String lat)
     localStr += _num_sat;
     localStr += _GPX_NUM_SAT_TAIL;
   }
+  if (_horizontal_accuracy.length() > 0)
+  {
+    localStr += _GPX_HORIZONTAL_ACCURACY_HEAD;
+    localStr += _horizontal_accuracy;
+    localStr += _GPX_HORIZONTAL_ACCURACY_TAIL;
+  }
   if (_sym.length() > 0)
   {
     localStr += _GPX_SYM_HEAD;
@@ -141,6 +147,15 @@ String GPX::getPt(String typ, String lon, String lat, String ele, String time, S
   return getPt(typ, lon, lat);
 }
 
+String GPX::getPt(String typ, String lon, String lat, String ele, String time, String num_sat, String horizontal_accuracy)
+{
+  setEle(ele);
+  setTime(time);
+  setNumSat(num_sat);
+  setHorizontalAccuracy(horizontal_accuracy);
+  return getPt(typ, lon, lat);
+}
+
 // Set Methods
 void GPX::setMetaName(String name)
 {
@@ -174,6 +189,11 @@ void GPX::setSrc(String src)
 void GPX::setNumSat(String num_sat)
 {
   _num_sat = num_sat;
+}
+
+void GPX::setHorizontalAccuracy(String horizontal_accuracy)
+{
+  _horizontal_accuracy = horizontal_accuracy;
 }
 
 void GPX::setTime(String time)

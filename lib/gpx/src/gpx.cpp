@@ -78,12 +78,12 @@ String GPX::getName()
   return _name;
 }
 
-String GPX::getPt(String typ, String lon, String lat)
+String GPX::getPt(String typ, float lon, float lat)
 {
   String localStr(_GPX_PT_HEAD);
   localStr.replace("TYPE", typ);
-  localStr += lat + "\" lon=\"";
-  localStr += lon + "\">";
+  localStr += String(lat) + "\" lon=\"";
+  localStr += String(lon) + "\">";
   if (_ele.length() > 0)
   {
     localStr += _GPX_ELE_HEAD;
@@ -126,20 +126,20 @@ String GPX::getPt(String typ, String lon, String lat)
   return localStr;
 }
 
-String GPX::getPt(String typ, String lon, String lat, String ele)
+String GPX::getPt(String typ, float lon, float lat, float ele)
 {
   setEle(ele);
   return getPt(typ, lon, lat);
 }
 
-String GPX::getPt(String typ, String lon, String lat, String ele, String time)
+String GPX::getPt(String typ, float lon, float lat, float ele, String time)
 {
   setEle(ele);
   setTime(time);
   return getPt(typ, lon, lat);
 }
 
-String GPX::getPt(String typ, String lon, String lat, String ele, String time, String num_sat)
+String GPX::getPt(String typ, float lon, float lat, float ele, String time, int num_sat)
 {
   setEle(ele);
   setTime(time);
@@ -147,7 +147,7 @@ String GPX::getPt(String typ, String lon, String lat, String ele, String time, S
   return getPt(typ, lon, lat);
 }
 
-String GPX::getPt(String typ, String lon, String lat, String ele, String time, String num_sat, String horizontal_accuracy)
+String GPX::getPt(String typ, float lon, float lat, float ele, String time, int num_sat, float horizontal_accuracy)
 {
   setEle(ele);
   setTime(time);
@@ -173,9 +173,9 @@ void GPX::setDesc(String desc)
 {
   _desc = desc;
 }
-void GPX::setEle(String ele)
+void GPX::setEle(float ele)
 {
-  _ele = ele;
+  _ele = String(ele);
 }
 void GPX::setSym(String sym)
 {
@@ -186,14 +186,14 @@ void GPX::setSrc(String src)
   _src = src;
 }
 
-void GPX::setNumSat(String num_sat)
+void GPX::setNumSat(int num_sat)
 {
-  _num_sat = num_sat;
+  _num_sat = String(num_sat);
 }
 
-void GPX::setHorizontalAccuracy(String horizontal_accuracy)
+void GPX::setHorizontalAccuracy(float horizontal_accuracy)
 {
-  _horizontal_accuracy = horizontal_accuracy;
+  _horizontal_accuracy = String(horizontal_accuracy);
 }
 
 void GPX::setTime(String time)

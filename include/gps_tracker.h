@@ -40,6 +40,7 @@ public:
     String format_time(DateTime dt);
     DateTime get_current_time();
     void set_sd_card_init(bool init) { sd_card_init = init; }
+    bool is_tracking_active() const { return tracking_active; }
 
 private:
     RoutePoint *last_point = nullptr;

@@ -65,7 +65,7 @@ bool GPSTracker::track_point()
 
             last_point = new RoutePoint{lat, lon, ele, get_current_time()}; // store last point for distance/time checks
             // write a track point to the file
-            GpxFile.println(gpx_parser.getPt(GPX_TRKPT, String(lat), String(lon), String(ele), format_time(last_point->time)));
+            GpxFile.println(gpx_parser.getPt(GPX_TRKPT, lat, lon, ele, format_time(last_point->time), GPS->satellites.value()));
             GpxFile.close();
             return true;
         }
@@ -94,7 +94,7 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
 
             last_point = new RoutePoint{lat, lon, ele, get_current_time()}; // store last point for distance/time checks
             // write a track point to the file
-            GpxFile.println(gpx_parser.getPt(GPX_TRKPT, String(lat), String(lon), String(ele), format_time(last_point->time), String(GPS->satellites.value())));
+            GpxFile.println(gpx_parser.getPt(GPX_TRKPT, lat, lon, ele, format_time(last_point->time), GPS->satellites.value()));
             GpxFile.close();
             return true;
         }

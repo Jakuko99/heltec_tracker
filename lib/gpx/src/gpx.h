@@ -50,20 +50,20 @@ public:
   String getTrakSegClose();
   String getInfo();
   String getName();
-  String getPt(String typ, String lon, String lat);
-  String getPt(String typ, String lon, String lat, String ele);
-  String getPt(String typ, String lon, String lat, String ele, String time);
-  String getPt(String typ, String lon, String lat, String ele, String time, String num_sat);
-  String getPt(String typ, String lon, String lat, String ele, String time, String num_sat, String horizontal_accuracy);
+  String getPt(String typ, float lon, float lat);
+  String getPt(String typ, float lon, float lat, float ele);
+  String getPt(String typ, float lon, float lat, float ele, String time);
+  String getPt(String typ, float lon, float lat, float ele, String time, int num_sat);
+  String getPt(String typ, float lon, float lat, float ele, String time, int num_sat, float horizontal_accuracy);
   void setMetaName(String name);
   void setMetaDesc(String desc);
   void setName(String name);
   void setDesc(String desc);
-  void setEle(String ele);
+  void setEle(float ele);
   void setSym(String sym);
   void setSrc(String src);
-  void setNumSat(String num_sat);
-  void setHorizontalAccuracy(String horizontal_accuracy);
+  void setNumSat(int num_sat);
+  void setHorizontalAccuracy(float horizontal_accuracy);
   void setTime(String time);
 
 private:

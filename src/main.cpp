@@ -89,6 +89,11 @@ void run_tasks(uint16_t interval_ms)
     while (Serial1.available())
       GPS.encode(Serial1.read());
   } while (millis() - start < interval_ms);
+
+  if (GPS.location.isUpdated() && tracker.is_tracking_active())
+  {
+    tracker.track_point();
+  }
 }
 
 void setup()
@@ -198,6 +203,17 @@ void loop()
       if (action == UP && GPS.location.isValid())
       {
         aprs.send_location();
+      }
+      else if (action == DOWN)
+      {
+        if (!tracker.is_tracking_active())
+        {
+          tracker.begin_tracking();
+        }
+        else
+        {
+          tracker.end_tracking();
+        }
       }
     }
   }

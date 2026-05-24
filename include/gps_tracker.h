@@ -33,12 +33,16 @@ public:
     GPSTracker(TinyGPSPlus *gps);
     GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interval, String track_desc);
     void load_config(float track_distance, int track_interval, String track_desc);
+
     bool begin_tracking();
     bool track_point();
     bool track_point(float lat, float lon, float ele);
     bool end_tracking();
+
+    bool init_waypoint_file();
     bool save_waypoint();
     bool save_waypoint(float lat, float lon, float ele);
+    bool save_waypoint_gpx(float lat, float lon, float ele);
 
     int time_between(DateTime start, DateTime end);
     DateTime parse_time(String time_str);
@@ -55,6 +59,7 @@ private:
     int tracking_interval;   // minimum time in seconds to log a new point
     String track_desc;       // description for the track
     GPX gpx_parser;
+    rapidxml::xml_document<> doc;
     File GpxFile;
     TinyGPSPlus *GPS;
 };

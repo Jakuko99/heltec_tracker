@@ -2,15 +2,25 @@
 
 GPSTracker::GPSTracker(TinyGPSPlus *gps)
 {
-    GPS = gps;
+    this->GPS = gps;
     gpx_parser.setMetaDesc("FW v0.1");
     gpx_parser.setDesc(track_desc);
 }
 
+GPSTracker::GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interval, String track_desc)
+{
+    this->GPS = gps;
+    gpx_parser.setMetaDesc("FW v0.1");
+    gpx_parser.setDesc(track_desc);
+    this->tracking_distance = track_distance;
+    this->tracking_interval = track_interval;
+    this->track_desc = track_desc;
+}
+
 void GPSTracker::load_config(float track_distance, int track_interval, String track_desc)
 {
-    tracking_distance = track_distance;
-    tracking_interval = track_interval;
+    this->tracking_distance = track_distance;
+    this->tracking_interval = track_interval;
     this->track_desc = track_desc;
 }
 
@@ -125,6 +135,30 @@ bool GPSTracker::end_tracking()
     return false;
 }
 
+bool GPSTracker::init_waypoint_file()
+{
+    if (sd_card_init)
+    {
+        if (!SD.exists("waypoints.gpx"))
+        {
+            File waypoint_file = SD.open("waypoints.gpx", "w");
+            gpx_parser.setMetaName("Waypoints");
+            if (waypoint_file)
+            {
+                // write header to the file
+                waypoint_file.println(gpx_parser.getOpen());
+                waypoint_file.println(gpx_parser.getMetaData());
+                waypoint_file.println(gpx_parser.getClose());
+                waypoint_file.close();
+                gpx_parser.setMetaName(""); // reset meta name for track files
+                return true;
+            }
+            return true; // file already exists, so consider it initialized
+        }
+    }
+    return false;
+}
+
 bool GPSTracker::save_waypoint()
 {
     if (sd_card_init)
@@ -166,6 +200,45 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
             waypoint_file.print(lon, 6);
             waypoint_file.print(",");
             waypoint_file.println(ele, 1);
+            waypoint_file.close();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GPSTracker::save_waypoint_gpx(float lat, float lon, float ele)
+{
+    if (sd_card_init)
+    {
+        if (!SD.exists("waypoints.gpx"))
+        {
+            init_waypoint_file(); // create file with header if it doesn't exist
+        }
+        File waypoint_file = SD.open("waypoints.gpx", "rw");
+        if (waypoint_file)
+        {
+            String xml_content = waypoint_file.readString();
+            std::unique_ptr<char[]> xml_buffer(new char[xml_content.length() + 1]);
+            xml_content.toCharArray(xml_buffer.get(), xml_content.length() + 1);
+            doc.parse<0>(xml_buffer.get()); // parse existing GPX file
+            rapidxml::xml_node<> *root = doc.first_node("gpx");
+            // build waypoint attributes string and allocate it with RapidXML
+            char wpt_buf[64];
+            snprintf(wpt_buf, sizeof(wpt_buf), "lat=\"%.8f\" lon=\"%.8f\"", lat, lon);
+            char *wpt_value = doc.allocate_string(wpt_buf);
+            rapidxml::xml_node<> *node = doc.allocate_node(rapidxml::node_element, "wpt", wpt_value);
+            doc.append_node(node);
+            rapidxml::xml_attribute<> *time_attr = doc.allocate_attribute("time", format_time(get_current_time()).c_str());
+            node->append_attribute(time_attr);
+            rapidxml::xml_attribute<> *ele_attr = doc.allocate_attribute("ele", String(ele, 1).c_str());
+            node->append_attribute(ele_attr);
+
+            // write updated XML back to the file
+            waypoint_file.seek(0); // go back to the beginning of the file
+            std::string xml_out;
+            //rapidxml::print(std::back_inserter(xml_out), doc, 0);
+            waypoint_file.print(xml_out.c_str());
             waypoint_file.close();
             return true;
         }

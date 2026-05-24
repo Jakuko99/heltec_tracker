@@ -125,6 +125,54 @@ bool GPSTracker::end_tracking()
     return false;
 }
 
+bool GPSTracker::save_waypoint()
+{
+    if (sd_card_init)
+    {
+        File waypoint_file = SD.open("waypoints.csv", "a");
+        if (waypoint_file)
+        {
+            float lat = GPS->location.lat();
+            float lon = GPS->location.lng();
+            float ele = GPS->altitude.meters();
+
+            // write a waypoint to the file
+            waypoint_file.print(format_time(get_current_time()));
+            waypoint_file.print(",");
+            waypoint_file.print(lat, 6);
+            waypoint_file.print(",");
+            waypoint_file.print(lon, 6);
+            waypoint_file.print(",");
+            waypoint_file.println(ele, 1);
+            waypoint_file.close();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GPSTracker::save_waypoint(float lat, float lon, float ele)
+{
+    if (sd_card_init)
+    {
+        File waypoint_file = SD.open("waypoints.csv", "a");
+        if (waypoint_file)
+        {
+            // write a waypoint to the file
+            waypoint_file.print(format_time(get_current_time()));
+            waypoint_file.print(",");
+            waypoint_file.print(lat, 6);
+            waypoint_file.print(",");
+            waypoint_file.print(lon, 6);
+            waypoint_file.print(",");
+            waypoint_file.println(ele, 1);
+            waypoint_file.close();
+            return true;
+        }
+    }
+    return false;
+}
+
 int GPSTracker::time_between(DateTime start, DateTime end)
 {
     // This function calculates the time difference in seconds between two DateTime structs

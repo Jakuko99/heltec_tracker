@@ -215,6 +215,10 @@ void loop()
           tracker.end_tracking();
         }
       }
+      else if (action == MIDDLE && GPS.location.isValid())
+      {
+        tracker.save_waypoint();
+      }
     }
   }
   // render_screen();

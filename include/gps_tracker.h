@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
+
+#include "rapidxml.hpp"
 #include "gpx.h"
 #include "HT_TinyGPS++.h"
 
@@ -35,6 +37,9 @@ public:
     bool track_point();
     bool track_point(float lat, float lon, float ele);
     bool end_tracking();
+    bool save_waypoint();
+    bool save_waypoint(float lat, float lon, float ele);
+
     int time_between(DateTime start, DateTime end);
     DateTime parse_time(String time_str);
     String format_time(DateTime dt);

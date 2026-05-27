@@ -53,22 +53,18 @@ bool GPSTracker::begin_tracking()
 
 bool GPSTracker::track_point()
 {
-    if (sd_card_init && tracking_active)
-    {
-        float lat = GPS->location.lat();
-        float lon = GPS->location.lng();
-        float ele = GPS->altitude.meters();
-        return track_point(lat, lon, ele);
-    }
-    return false;
+    float lat = GPS->location.lat();
+    float lon = GPS->location.lng();
+    float ele = GPS->altitude.meters();
+    return track_point(lat, lon, ele);
 }
 
 bool GPSTracker::track_point(float lat, float lon, float ele)
 {
-    if (sd_card_init)
+    if (sd_card_init && tracking_active)
     {
         GpxFile = SD.open(gpx_parser.getName() + ".gpx", "a");
-        if (GpxFile && tracking_active)
+        if (GpxFile)
         {
             if (last_point != nullptr)
             {
@@ -92,9 +88,27 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
     return false;
 }
 
+bool GPSTracker::new_track_segment()
+{
+    if (sd_card_init && tracking_active)
+    {
+        GpxFile = SD.open(gpx_parser.getName() + ".gpx", "a");
+        if (GpxFile)
+        {
+            // write footer to the file and close it
+            GpxFile.print(gpx_parser.getTrakSegClose());
+            GpxFile.print(gpx_parser.getTrakSegOpen());
+            GpxFile.close();
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool GPSTracker::end_tracking()
 {
-    if (sd_card_init)
+    if (sd_card_init && tracking_active)
     {
         GpxFile = SD.open(gpx_parser.getName() + ".gpx", "a");
         if (GpxFile)
@@ -111,6 +125,7 @@ bool GPSTracker::end_tracking()
             return true;
         }
     }
+
     return false;
 }
 
@@ -138,23 +153,30 @@ bool GPSTracker::init_waypoint_file()
     return false;
 }
 
-bool GPSTracker::save_waypoint()
+bool GPSTracker::save_waypoint_csv()
 {
-    if (sd_card_init)
-    {
-        float lat = GPS->location.lat();
-        float lon = GPS->location.lng();
-        float ele = GPS->altitude.meters();
-        return save_waypoint(lat, lon, ele);
-    }
-    return false;
+    float lat = GPS->location.lat();
+    float lon = GPS->location.lng();
+    float ele = GPS->altitude.meters();
+    return save_waypoint_csv(lat, lon, ele);
 }
 
-bool GPSTracker::save_waypoint(float lat, float lon, float ele)
+bool GPSTracker::save_waypoint_csv(float lat, float lon, float ele)
 {
     if (sd_card_init)
     {
-        File waypoint_file = SD.open("waypoints.csv", "a");
+        File waypoint_file;
+        if (!SD.exists("waypoints.csv"))
+        {
+            waypoint_file = SD.open("waypoints.csv", "w");
+            waypoint_file.println("time,latitude,longitude,elevation");
+        }
+        else
+        {
+
+            waypoint_file = SD.open("waypoints.csv", "a");
+        }
+
         if (waypoint_file)
         {
             // write a waypoint to the file
@@ -172,19 +194,15 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
     return false;
 }
 
-bool GPSTracker::save_waypoint_gpx()
+bool GPSTracker::save_waypoint()
 {
-    if (sd_card_init)
-    {
-        float lat = GPS->location.lat();
-        float lon = GPS->location.lng();
-        float ele = GPS->altitude.meters();
-        return save_waypoint_gpx(lat, lon, ele);
-    }
-    return false;
+    float lat = GPS->location.lat();
+    float lon = GPS->location.lng();
+    float ele = GPS->altitude.meters();
+    return save_waypoint(lat, lon, ele);
 }
 
-bool GPSTracker::save_waypoint_gpx(float lat, float lon, float ele)
+bool GPSTracker::save_waypoint(float lat, float lon, float ele)
 {
     if (sd_card_init)
     {

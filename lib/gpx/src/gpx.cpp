@@ -1,4 +1,4 @@
-#include <gpx.h>
+#include "gpx.h"
 
 GPX::GPX()
 {
@@ -22,13 +22,13 @@ String GPX::getMetaData()
   if (_metaName.length() > 0)
   {
     localStr += String(_GPX_NAME_HEAD);
-    localStr += wrapCDATA(_metaName);
+    localStr += _metaName;
     localStr += String(_GPX_NAME_TAIL);
   }
   if (_metaDesc.length() > 0)
   {
     localStr += String(_GPX_DESC_HEAD);
-    localStr += wrapCDATA(_metaDesc);
+    localStr += _metaDesc;
     localStr += String(_GPX_DESC_TAIL);
   }
   localStr += String(_GPX_META_TAIL);
@@ -61,13 +61,13 @@ String GPX::getInfo()
   if (_name.length() > 0)
   {
     localStr += _GPX_NAME_HEAD;
-    localStr += wrapCDATA(_name);
+    localStr += _name;
     localStr += _GPX_NAME_TAIL;
   }
   if (_desc.length() > 0)
   {
     localStr += _GPX_DESC_HEAD;
-    localStr += wrapCDATA(_desc);
+    localStr += _desc;
     localStr += _GPX_DESC_TAIL;
   }
   return localStr;
@@ -117,7 +117,7 @@ String GPX::getPt(String typ, float lon, float lat)
   if (_src.length() > 0)
   {
     localStr += _GPX_SRC_HEAD;
-    localStr += wrapCDATA(_src);
+    localStr += _src;
     localStr += _GPX_SRC_TAIL;
   }
   String ptTail(_GPX_PT_TAIL);

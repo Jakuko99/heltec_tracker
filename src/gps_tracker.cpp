@@ -37,11 +37,11 @@ bool GPSTracker::begin_tracking()
         if (GpxFile)
         {
             // write header to the file
-            GpxFile.println(gpx_parser.getOpen());
-            GpxFile.println(gpx_parser.getMetaData());
-            GpxFile.println(gpx_parser.getTrakOpen());
-            GpxFile.println(gpx_parser.getInfo());
-            GpxFile.println(gpx_parser.getTrakSegOpen());
+            GpxFile.print(gpx_parser.getOpen());
+            GpxFile.print(gpx_parser.getMetaData());
+            GpxFile.print(gpx_parser.getTrakOpen());
+            GpxFile.print(gpx_parser.getInfo());
+            GpxFile.print(gpx_parser.getTrakSegOpen());
             GpxFile.close();
             tracking_active = true;
             return true;
@@ -83,7 +83,7 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
 
             last_point = new RoutePoint{lat, lon, ele, get_current_time()}; // store last point for distance/time checks
             // write a track point to the file
-            GpxFile.println(gpx_parser.getPt(GPX_TRKPT, lat, lon, ele, format_time(last_point->time), GPS->satellites.value()));
+            GpxFile.print(gpx_parser.getPt(GPX_TRKPT, lat, lon, ele, format_time(last_point->time), GPS->satellites.value()));
             GpxFile.close();
             return true;
         }
@@ -100,9 +100,9 @@ bool GPSTracker::end_tracking()
         if (GpxFile)
         {
             // write footer to the file and close it
-            GpxFile.println(gpx_parser.getTrakSegClose());
-            GpxFile.println(gpx_parser.getTrakClose());
-            GpxFile.println(gpx_parser.getClose());
+            GpxFile.print(gpx_parser.getTrakSegClose());
+            GpxFile.print(gpx_parser.getTrakClose());
+            GpxFile.print(gpx_parser.getClose());
             GpxFile.close();
 
             delete last_point; // clean up last point memory
@@ -125,9 +125,9 @@ bool GPSTracker::init_waypoint_file()
             if (waypoint_file)
             {
                 // write header to the file
-                waypoint_file.println(gpx_parser.getOpen());
-                waypoint_file.println(gpx_parser.getMetaData());
-                waypoint_file.println(gpx_parser.getClose());
+                waypoint_file.print(gpx_parser.getOpen());
+                waypoint_file.print(gpx_parser.getMetaData());
+                waypoint_file.print(gpx_parser.getClose());
                 waypoint_file.close();
                 gpx_parser.setMetaName(""); // reset meta name for track files
                 return true;
@@ -203,15 +203,18 @@ bool GPSTracker::save_waypoint_gpx(float lat, float lon, float ele)
             waypoint_file.close();
 
             // build waypoint attributes string and allocate it with RapidXML
-            char wpt_buf[64];
-            snprintf(wpt_buf, sizeof(wpt_buf), "lat=\"%.8f\" lon=\"%.8f\"", lat, lon);
-            char *wpt_value = doc.allocate_string(wpt_buf);
-            rapidxml::xml_node<> *node = doc.allocate_node(rapidxml::node_element, "wpt", wpt_value);
-            doc.append_node(node);
-            rapidxml::xml_attribute<> *time_attr = doc.allocate_attribute("time", format_time(get_current_time()).c_str());
-            node->append_attribute(time_attr);
-            rapidxml::xml_attribute<> *ele_attr = doc.allocate_attribute("ele", String(ele, 1).c_str());
-            node->append_attribute(ele_attr);
+            rapidxml::xml_node<> *node = doc.allocate_node(rapidxml::node_element, "wpt");
+            root->append_node(node);
+            rapidxml::xml_attribute<> *lat_attr = doc.allocate_attribute("lat", String(lat).c_str());
+            node->append_attribute(lat_attr);
+            rapidxml::xml_attribute<> *lon_attr = doc.allocate_attribute("lon", String(lon).c_str());
+            node->append_attribute(lon_attr);
+            rapidxml::xml_node<> *ele_node = doc.allocate_node(rapidxml::node_element, "ele", String(ele).c_str());
+            node->append_node(ele_node);
+            rapidxml::xml_node<> *time_node = doc.allocate_node(rapidxml::node_element, "time", format_time(get_current_time()).c_str());
+            node->append_node(time_node);
+            rapidxml::xml_node<> *name_node = doc.allocate_node(rapidxml::node_element, "name", format_time(get_current_time()).c_str());
+            node->append_node(name_node);
 
             waypoint_file = SD.open("waypoints.gpx", "w");
             if (!waypoint_file)

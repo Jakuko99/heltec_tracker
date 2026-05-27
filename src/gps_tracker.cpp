@@ -53,34 +53,13 @@ bool GPSTracker::begin_tracking()
 
 bool GPSTracker::track_point()
 {
-    if (sd_card_init)
+    if (sd_card_init && tracking_active)
     {
-        GpxFile = SD.open(gpx_parser.getName() + ".gpx", "a");
-        if (GpxFile && tracking_active)
-        {
-            float lat = GPS->location.lat();
-            float lon = GPS->location.lng();
-            float ele = GPS->altitude.meters();
-
-            if (last_point != nullptr)
-            {
-                float distance = GPS->distanceBetween(last_point->lat, last_point->lon, lat, lon);
-                if (distance < tracking_distance || (time_between(last_point->time, get_current_time()) < tracking_interval))
-                {
-                    // skip point if it's too close to the last one
-                    GpxFile.close();
-                    return true; // successfully "tracked" (skipped) the point, so return true
-                }
-            }
-
-            last_point = new RoutePoint{lat, lon, ele, get_current_time()}; // store last point for distance/time checks
-            // write a track point to the file
-            GpxFile.println(gpx_parser.getPt(GPX_TRKPT, lat, lon, ele, format_time(last_point->time), GPS->satellites.value()));
-            GpxFile.close();
-            return true;
-        }
+        float lat = GPS->location.lat();
+        float lon = GPS->location.lng();
+        float ele = GPS->altitude.meters();
+        return track_point(lat, lon, ele);
     }
-
     return false;
 }
 
@@ -163,24 +142,10 @@ bool GPSTracker::save_waypoint()
 {
     if (sd_card_init)
     {
-        File waypoint_file = SD.open("waypoints.csv", "a");
-        if (waypoint_file)
-        {
-            float lat = GPS->location.lat();
-            float lon = GPS->location.lng();
-            float ele = GPS->altitude.meters();
-
-            // write a waypoint to the file
-            waypoint_file.print(format_time(get_current_time()));
-            waypoint_file.print(",");
-            waypoint_file.print(lat, 6);
-            waypoint_file.print(",");
-            waypoint_file.print(lon, 6);
-            waypoint_file.print(",");
-            waypoint_file.println(ele, 1);
-            waypoint_file.close();
-            return true;
-        }
+        float lat = GPS->location.lat();
+        float lon = GPS->location.lng();
+        float ele = GPS->altitude.meters();
+        return save_waypoint(lat, lon, ele);
     }
     return false;
 }
@@ -207,6 +172,18 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
     return false;
 }
 
+bool GPSTracker::save_waypoint_gpx()
+{
+    if (sd_card_init)
+    {
+        float lat = GPS->location.lat();
+        float lon = GPS->location.lng();
+        float ele = GPS->altitude.meters();
+        return save_waypoint_gpx(lat, lon, ele);
+    }
+    return false;
+}
+
 bool GPSTracker::save_waypoint_gpx(float lat, float lon, float ele)
 {
     if (sd_card_init)
@@ -215,14 +192,16 @@ bool GPSTracker::save_waypoint_gpx(float lat, float lon, float ele)
         {
             init_waypoint_file(); // create file with header if it doesn't exist
         }
-        File waypoint_file = SD.open("waypoints.gpx", "rw");
+        File waypoint_file = SD.open("waypoints.gpx", "r");
         if (waypoint_file)
         {
-            String xml_content = waypoint_file.readString();
+            String xml_content = waypoint_file.readStringUntil(EOF); // read entire file content
             std::unique_ptr<char[]> xml_buffer(new char[xml_content.length() + 1]);
             xml_content.toCharArray(xml_buffer.get(), xml_content.length() + 1);
             doc.parse<0>(xml_buffer.get()); // parse existing GPX file
             rapidxml::xml_node<> *root = doc.first_node("gpx");
+            waypoint_file.close();
+
             // build waypoint attributes string and allocate it with RapidXML
             char wpt_buf[64];
             snprintf(wpt_buf, sizeof(wpt_buf), "lat=\"%.8f\" lon=\"%.8f\"", lat, lon);
@@ -234,12 +213,21 @@ bool GPSTracker::save_waypoint_gpx(float lat, float lon, float ele)
             rapidxml::xml_attribute<> *ele_attr = doc.allocate_attribute("ele", String(ele, 1).c_str());
             node->append_attribute(ele_attr);
 
+            waypoint_file = SD.open("waypoints.gpx", "w");
+            if (!waypoint_file)
+            {
+                return false; // failed to open file for writing
+            }
             // write updated XML back to the file
-            waypoint_file.seek(0); // go back to the beginning of the file
             std::string xml_out;
-            //rapidxml::print(std::back_inserter(xml_out), doc, 0);
+            rapidxml::print(std::back_inserter(xml_out), doc, 0);
             waypoint_file.print(xml_out.c_str());
             waypoint_file.close();
+
+            // free up allocated XML memory
+            delete[] xml_buffer.release(); // clean up XML buffer memory
+            doc.clear();
+
             return true;
         }
     }

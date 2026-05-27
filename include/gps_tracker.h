@@ -6,6 +6,7 @@
 #include <SD.h>
 
 #include "rapidxml.hpp"
+#include "rapidxml_print.hpp"
 #include "gpx.h"
 #include "HT_TinyGPS++.h"
 
@@ -42,13 +43,14 @@ public:
     bool init_waypoint_file();
     bool save_waypoint();
     bool save_waypoint(float lat, float lon, float ele);
+    bool save_waypoint_gpx();
     bool save_waypoint_gpx(float lat, float lon, float ele);
 
     int time_between(DateTime start, DateTime end);
     DateTime parse_time(String time_str);
     String format_time(DateTime dt);
     DateTime get_current_time();
-    void set_sd_card_init(bool init) { sd_card_init = init; }
+    void set_sd_card_init(bool _init) { sd_card_init = _init; }
     bool is_tracking_active() const { return tracking_active; }
 
 private:

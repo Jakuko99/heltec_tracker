@@ -7,7 +7,7 @@ GPSTracker::GPSTracker(TinyGPSPlus *gps)
     gpx_parser.setDesc(track_desc);
 }
 
-GPSTracker::GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interval, String track_desc)
+GPSTracker::GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interval, string track_desc)
 {
     this->GPS = gps;
     gpx_parser.setMetaDesc("FW v0.1");
@@ -17,7 +17,7 @@ GPSTracker::GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interva
     this->track_desc = track_desc;
 }
 
-void GPSTracker::load_config(float track_distance, int track_interval, String track_desc)
+void GPSTracker::load_config(float track_distance, int track_interval, string track_desc)
 {
     this->tracking_distance = track_distance;
     this->tracking_interval = track_interval;
@@ -33,15 +33,16 @@ bool GPSTracker::begin_tracking()
     if (sd_card_init)
     {
         // create track file
-        GpxFile = SD.open(gpx_parser.getName() + ".gpx", "w");
+        track_filename = gpx_parser.getName() + ".gpx";
+        GpxFile = SD.open(track_filename.c_str(), "w");
         if (GpxFile)
         {
             // write header to the file
-            GpxFile.print(gpx_parser.getOpen());
-            GpxFile.print(gpx_parser.getMetaData());
-            GpxFile.print(gpx_parser.getTrakOpen());
-            GpxFile.print(gpx_parser.getInfo());
-            GpxFile.print(gpx_parser.getTrakSegOpen());
+            GpxFile.print(gpx_parser.getOpen().c_str());
+            GpxFile.print(gpx_parser.getMetaData().c_str());
+            GpxFile.print(gpx_parser.getTrakOpen().c_str());
+            GpxFile.print(gpx_parser.getInfo().c_str());
+            GpxFile.print(gpx_parser.getTrakSegOpen().c_str());
             GpxFile.close();
             tracking_active = true;
             return true;
@@ -67,7 +68,7 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
 {
     if (sd_card_init)
     {
-        GpxFile = SD.open(gpx_parser.getName() + ".gpx", "a");
+        GpxFile = SD.open(track_filename.c_str(), "a");
         if (GpxFile && tracking_active)
         {
             if (last_point != nullptr)
@@ -83,7 +84,7 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
 
             last_point = new RoutePoint{lat, lon, ele, get_current_time()}; // store last point for distance/time checks
             // write a track point to the file
-            GpxFile.print(gpx_parser.getPt(GPX_TRKPT, lat, lon, ele, format_time(last_point->time), GPS->satellites.value()));
+            GpxFile.print(gpx_parser.getPt(GPX_TRKPT, lat, lon, ele, format_time(last_point->time), GPS->satellites.value()).c_str());
             GpxFile.close();
             return true;
         }
@@ -96,13 +97,13 @@ bool GPSTracker::end_tracking()
 {
     if (sd_card_init)
     {
-        GpxFile = SD.open(gpx_parser.getName() + ".gpx", "a");
+        GpxFile = SD.open(track_filename.c_str(), "a");
         if (GpxFile)
         {
             // write footer to the file and close it
-            GpxFile.print(gpx_parser.getTrakSegClose());
-            GpxFile.print(gpx_parser.getTrakClose());
-            GpxFile.print(gpx_parser.getClose());
+            GpxFile.print(gpx_parser.getTrakSegClose().c_str());
+            GpxFile.print(gpx_parser.getTrakClose().c_str());
+            GpxFile.print(gpx_parser.getClose().c_str());
             GpxFile.close();
 
             delete last_point; // clean up last point memory
@@ -125,9 +126,9 @@ bool GPSTracker::init_waypoint_file()
             if (waypoint_file)
             {
                 // write header to the file
-                waypoint_file.print(gpx_parser.getOpen());
-                waypoint_file.print(gpx_parser.getMetaData());
-                waypoint_file.print(gpx_parser.getClose());
+                waypoint_file.print(gpx_parser.getOpen().c_str());
+                waypoint_file.print(gpx_parser.getMetaData().c_str());
+                waypoint_file.print(gpx_parser.getClose().c_str());
                 waypoint_file.close();
                 gpx_parser.setMetaName(""); // reset meta name for track files
                 return true;
@@ -158,7 +159,7 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
         if (waypoint_file)
         {
             // write a waypoint to the file
-            waypoint_file.print(format_time(get_current_time()));
+            waypoint_file.print(format_time(get_current_time()).c_str());
             waypoint_file.print(",");
             waypoint_file.print(lat, 6);
             waypoint_file.print(",");
@@ -205,11 +206,11 @@ bool GPSTracker::save_waypoint_gpx(float lat, float lon, float ele)
             // build waypoint attributes string and allocate it with RapidXML
             rapidxml::xml_node<> *node = doc.allocate_node(rapidxml::node_element, "wpt");
             root->append_node(node);
-            rapidxml::xml_attribute<> *lat_attr = doc.allocate_attribute("lat", String(lat).c_str());
+            rapidxml::xml_attribute<> *lat_attr = doc.allocate_attribute("lat", to_string(lat).c_str());
             node->append_attribute(lat_attr);
-            rapidxml::xml_attribute<> *lon_attr = doc.allocate_attribute("lon", String(lon).c_str());
+            rapidxml::xml_attribute<> *lon_attr = doc.allocate_attribute("lon", to_string(lon).c_str());
             node->append_attribute(lon_attr);
-            rapidxml::xml_node<> *ele_node = doc.allocate_node(rapidxml::node_element, "ele", String(ele).c_str());
+            rapidxml::xml_node<> *ele_node = doc.allocate_node(rapidxml::node_element, "ele", to_string(ele).c_str());
             node->append_node(ele_node);
             rapidxml::xml_node<> *time_node = doc.allocate_node(rapidxml::node_element, "time", format_time(get_current_time()).c_str());
             node->append_node(time_node);
@@ -247,7 +248,7 @@ int GPSTracker::time_between(DateTime start, DateTime end)
     return difftime(time_end, time_start);
 }
 
-DateTime GPSTracker::parse_time(String time_str)
+DateTime GPSTracker::parse_time(string time_str)
 {
     // This function parses an ISO 8601 time string and returns a DateTime struct
     struct tm tm_time;
@@ -262,12 +263,12 @@ DateTime GPSTracker::parse_time(String time_str)
     return dt;
 }
 
-String GPSTracker::format_time(DateTime dt)
+string GPSTracker::format_time(DateTime dt)
 {
     // This function formats a DateTime struct into an ISO 8601 time string
     char buffer[25];
     snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02dZ", dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
-    return String(buffer);
+    return string(buffer);
 }
 
 DateTime GPSTracker::get_current_time()

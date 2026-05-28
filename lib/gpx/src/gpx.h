@@ -1,7 +1,7 @@
 #ifndef GPX_h
 #define GPX_h
 
-#include <Arduino.h>
+#include <string>
 
 #define _GPX_HEAD "<gpx version=\"1.1\" creator=\"Arduino GPX Lib\"\n xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n xmlns=\"http://www.topografix.com/GPX/1/1\"\n xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\">\n"
 #define _GPX_TAIL "</gpx>\n"
@@ -37,50 +37,52 @@
 #define GPX_WPT "wpt"
 #define GPX_RTEPT "rtept"
 
+using namespace std;
+
 class GPX
 {
 public:
   GPX();
-  String getOpen();
-  String getClose();
-  String getMetaData();
-  String getTrakOpen();
-  String getTrakClose();
-  String getTrakSegOpen();
-  String getTrakSegClose();
-  String getInfo();
-  String getName();
-  String getPt(String typ, float lon, float lat);
-  String getPt(String typ, float lon, float lat, float ele);
-  String getPt(String typ, float lon, float lat, float ele, String time);
-  String getPt(String typ, float lon, float lat, float ele, String time, int num_sat);
-  String getPt(String typ, float lon, float lat, float ele, String time, int num_sat, float horizontal_accuracy);
-  void setMetaName(String name);
-  void setMetaDesc(String desc);
-  void setName(String name);
-  void setDesc(String desc);
+  string getOpen();
+  string getClose();
+  string getMetaData();
+  string getTrakOpen();
+  string getTrakClose();
+  string getTrakSegOpen();
+  string getTrakSegClose();
+  string getInfo();
+  string getName();
+  string getPt(string typ, float lon, float lat);
+  string getPt(string typ, float lon, float lat, float ele);
+  string getPt(string typ, float lon, float lat, float ele, string time);
+  string getPt(string typ, float lon, float lat, float ele, string time, int num_sat);
+  string getPt(string typ, float lon, float lat, float ele, string time, int num_sat, float horizontal_accuracy);
+  void setMetaName(string name);
+  void setMetaDesc(string desc);
+  void setName(string name);
+  void setDesc(string desc);
   void setEle(float ele);
-  void setSym(String sym);
-  void setSrc(String src);
+  void setSym(string sym);
+  void setSrc(string src);
   void setNumSat(int num_sat);
   void setHorizontalAccuracy(float horizontal_accuracy);
-  void setTime(String time);
+  void setTime(string time);
 
 private:
   // Variables
-  String _metaName;
-  String _metaDesc;
-  String _name;
-  String _desc;
-  String _ele;
-  String _sym;
-  String _src;
-  String _time;
-  String _num_sat;
-  String _horizontal_accuracy;
+  string _metaName;
+  string _metaDesc;
+  string _name;
+  string _desc;
+  string _ele;
+  string _sym;
+  string _src;
+  string _time;
+  string _num_sat;
+  string _horizontal_accuracy;
 
   // Functions
-  String wrapCDATA(String input);
+  string wrapCDATA(string input);
 };
 
 #endif

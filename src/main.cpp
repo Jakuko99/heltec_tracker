@@ -149,19 +149,19 @@ void setup()
         }
         else if (line.startsWith("TRACK_DESC="))
         {
-          boardConfig.track_desc = line.substring(11);
+          boardConfig.track_desc = line.substring(11).c_str();
         }
         else if (line.startsWith("CALLSIGN="))
         {
-          boardConfig.callsign = line.substring(9);
+          boardConfig.callsign = line.substring(9).c_str();
         }
         else if (line.startsWith("SYMBOL="))
         {
-          boardConfig.symbol = line.substring(7);
+          boardConfig.symbol = line.substring(7).c_str();
         }
         else if (line.startsWith("STATUS="))
         {
-          boardConfig.status = line.substring(7);
+          boardConfig.status = line.substring(7).c_str();
         }
         else if (line.startsWith("POSITION_REPORT_INTERVAL="))
         {
@@ -183,11 +183,11 @@ void setup()
     Serial.println("Config file not found. Using default settings.");
   }
 
-  aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
+  aprs.init(String(boardConfig.callsign.c_str()), String(boardConfig.symbol.c_str()), String(boardConfig.status.c_str()));
   aprs.assign_gps(&GPS);
 
   disp.st7735_write_str(20, 0, "Welcome,", Font_16x26);
-  disp.st7735_write_str(20, 30, (boardConfig.callsign != "NOCALL") ? boardConfig.callsign : "User");
+  disp.st7735_write_str(20, 30, (boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User");
 }
 
 void loop()

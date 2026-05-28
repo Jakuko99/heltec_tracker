@@ -218,7 +218,7 @@ void loop()
       else if (action == MIDDLE && GPS.location.isValid())
       {
         tracker.save_waypoint();
-        tracker.save_waypoint_gpx();
+        tracker.save_waypoint_csv();
       }
     }
   }

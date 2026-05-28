@@ -41,13 +41,14 @@ public:
     bool begin_tracking();
     bool track_point();
     bool track_point(float lat, float lon, float ele);
+    bool new_track_segment();
     bool end_tracking();
 
     bool init_waypoint_file();
+    bool save_waypoint_csv();
+    bool save_waypoint_csv(float lat, float lon, float ele);
     bool save_waypoint();
     bool save_waypoint(float lat, float lon, float ele);
-    bool save_waypoint_gpx();
-    bool save_waypoint_gpx(float lat, float lon, float ele);
 
     int time_between(DateTime start, DateTime end);
     DateTime parse_time(string time_str);

@@ -58,7 +58,7 @@ public:
     bool is_tracking_active() const { return tracking_active; }
 
 private:
-    RoutePoint *last_point = nullptr;
+    std::unique_ptr<RoutePoint> last_point = nullptr;
     bool tracking_active = false;
     string track_filename;
     bool sd_card_init = false;

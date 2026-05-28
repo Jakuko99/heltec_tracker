@@ -47,6 +47,7 @@ enum MenuItems
 {
     START_TRACKING,
     STOP_TRACKING,
+    SAVE_WAYPOINT,
     SEND_POSITION,
 };
 

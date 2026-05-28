@@ -204,7 +204,7 @@ void loop()
       {
         aprs.send_location();
       }
-      else if (action == DOWN)
+      else if (action == DOWN && GPS.location.isValid())
       {
         if (!tracker.is_tracking_active())
         {
@@ -238,5 +238,5 @@ void loop()
     Serial.printf("GPS Data: %f %f %f\n", GPS.location.lat(), GPS.location.lng(), GPS.altitude.meters());
   }
 
-  run_tasks(1000); // Run GPS encoding and other tasks for 10 ms
+  run_tasks(500); // Run GPS encoding and other tasks for 500 ms
 }

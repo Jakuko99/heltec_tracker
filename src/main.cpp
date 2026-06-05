@@ -7,15 +7,16 @@ HT_st7735 disp;
 BoardConfig boardConfig;
 
 bool sd_card_init = false;
-int menu_item = 0;
+int screen_id = 0;
 int cursor_pos = 0;
 unsigned long prev_millis = 0;
 DateTime last_gps_time;
 String time_str;
+String message_str;
 
 void render_screen()
 {
-  switch (menu_item)
+  switch (screen_id)
   {
   case 0: // draw main screen
     disp.st7735_fill_screen(ST7735_BLACK);
@@ -42,6 +43,19 @@ void render_screen()
       {
         disp.st7735_write_str(0, 20 * i, "  " + String((MenuItems)i));
       }
+    }
+    break;
+
+  case 3: // draw message screen
+    if (!message_str.isEmpty())
+    {
+      disp.st7735_fill_rectangle(3, 3, DISP_WIDTH - 6, DISP_HEIGHT - 6, ST7735_WHITE);
+      disp.st7735_write_str(0, 0, "Info");
+      disp.st7735_write_str(0, 20, message_str);
+    }
+    else
+    {
+      screen_id = 0; // return to main screen if no message to show
     }
     break;
 
@@ -183,8 +197,11 @@ void setup()
     Serial.println("Config file not found. Using default settings.");
   }
 
-  aprs.init(String(boardConfig.callsign.c_str()), String(boardConfig.symbol.c_str()), String(boardConfig.status.c_str()));
-  aprs.assign_gps(&GPS);
+  if (boardConfig.position_reports_enabled) // Initialize APRS if position reports are enabled
+  {
+    aprs.init(String(boardConfig.callsign.c_str()), String(boardConfig.symbol.c_str()), String(boardConfig.status.c_str()));
+    aprs.assign_gps(&GPS);
+  }
 
   disp.st7735_write_str(20, 0, "Welcome,", Font_16x26);
   disp.st7735_write_str(20, 30, (boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User");
@@ -200,7 +217,7 @@ void loop()
     {
       // Handle button actions here
       Serial.println("Button pressed: " + String(action));
-      if (action == UP && GPS.location.isValid())
+      if (action == UP && GPS.location.isValid() && boardConfig.position_reports_enabled)
       {
         aprs.send_location();
       }

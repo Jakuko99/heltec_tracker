@@ -42,6 +42,7 @@ public:
     bool track_point();
     bool track_point(float lat, float lon, float ele);
     bool new_track_segment();
+    bool pause_tracking();
     bool end_tracking();
 
     bool init_waypoint_file();

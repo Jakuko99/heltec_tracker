@@ -54,7 +54,7 @@ bool GPSTracker::begin_tracking()
 
 bool GPSTracker::track_point()
 {
-    if (sd_card_init && tracking_active)
+    if (sd_card_init && tracking_active && GPS->location.isValid())
     {
         float lat = GPS->location.lat();
         float lon = GPS->location.lng();
@@ -111,6 +111,35 @@ bool GPSTracker::new_track_segment()
     return false;
 }
 
+bool GPSTracker::pause_tracking()
+{
+    if (sd_card_init && tracking_active)
+    {
+        GpxFile = SD.open(track_filename.c_str(), "a");
+        if (GpxFile)
+        {
+            // write footer to the file and close it
+            GpxFile.print(gpx_parser.getTrakSegClose().c_str());
+            GpxFile.close();
+            tracking_active = false;
+            return true;
+        }
+    }
+    else if (sd_card_init && !tracking_active && !track_filename.empty())
+    {
+        GpxFile = SD.open(track_filename.c_str(), "a");
+        if (GpxFile)
+        {
+            // write segment header to the file and close it
+            GpxFile.print(gpx_parser.getTrakSegOpen().c_str());
+            GpxFile.close();
+            tracking_active = true;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool GPSTracker::end_tracking()
 {
     if (sd_card_init)
@@ -124,8 +153,9 @@ bool GPSTracker::end_tracking()
             GpxFile.print(gpx_parser.getClose().c_str());
             GpxFile.close();
 
-            last_point.reset(); // clean up last point memory            
+            last_point.reset(); // clean up last point memory
             tracking_active = false;
+            this->track_filename.clear();
             return true;
         }
     }

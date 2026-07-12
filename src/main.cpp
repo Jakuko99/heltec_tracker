@@ -1,9 +1,9 @@
 #include "main.h"
 
 TinyGPSPlus GPS;
+HT_st7735 disp;
 GPSTracker tracker(&GPS);
 LoRaAPRS aprs;
-HT_st7735 disp;
 BoardConfig boardConfig;
 
 bool sd_card_init = false;
@@ -133,7 +133,7 @@ void setup()
   disp.st7735_fill_screen(ST7735_BLACK);
 
   // Setup SD card
-  if (!SD.begin(SD_CS))
+  /*if (!SD.begin(SD_CS))
   {
     disp.st7735_write_str(0, 0, "SD init failed!");
     return;
@@ -205,11 +205,12 @@ void setup()
 
   disp.st7735_write_str(20, 0, "Welcome,", Font_16x26);
   disp.st7735_write_str(20, 30, (boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User");
+  delay(1000);*/
 }
 
 void loop()
 {
-  if (millis() - prev_millis > CYCLE_TIME)
+  /*if (millis() - prev_millis > CYCLE_TIME)
   {
     prev_millis = millis();
     PadAction action = get_action();
@@ -238,21 +239,25 @@ void loop()
         tracker.save_waypoint_csv();
       }
     }
-  }
+  }*/
   // render_screen();
 
   if (GPS.location.isUpdated())
   {
     disp.st7735_fill_screen(ST7735_BLACK);
-    disp.st7735_write_str(0, 0, "GPS_test");
-    String time_str = String(GPS.time.hour()) + ":" + String(GPS.time.minute()) + ":" + String(GPS.time.second()) + ":" + String(GPS.time.centisecond());
-    disp.st7735_write_str(0, 20, time_str);
+    String time_str = String(GPS.time.hour()) + ":" + String(GPS.time.minute()) + ":" + String(GPS.time.second());
+    disp.st7735_write_str(0, 0, time_str);
     String latitude = "LAT: " + String(GPS.location.lat());
-    disp.st7735_write_str(0, 40, latitude);
+    disp.st7735_write_str(0, 20, latitude);
     String longitude = "LON: " + String(GPS.location.lng());
-    disp.st7735_write_str(0, 60, longitude);
+    disp.st7735_write_str(0, 40, longitude);
+    String altitude = "ALT: " + String(GPS.altitude.meters()) + " m";
+    disp.st7735_write_str(0, 60, altitude);
 
     Serial.printf("GPS Data: %f %f %f\n", GPS.location.lat(), GPS.location.lng(), GPS.altitude.meters());
+  } else {
+    disp.st7735_fill_screen(ST7735_BLACK);
+    disp.st7735_write_str(0, 0, "Waiting for GPS signal...");
   }
 
   run_tasks(500); // Run GPS encoding and other tasks for 500 ms

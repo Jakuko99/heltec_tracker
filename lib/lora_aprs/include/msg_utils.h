@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 #include <SPIFFS.h>
+#include <TinyGPSPlus.h>
 #include "lora_utils.h"
-#include "HT_TinyGPS++.h"
 #include <APRSPacketLib.h>
 #include <vector>
 

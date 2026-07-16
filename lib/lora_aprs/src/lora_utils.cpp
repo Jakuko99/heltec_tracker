@@ -7,7 +7,11 @@ bool operationDone = true;
 bool transmitFlag = true;
 
 #if defined(HAS_SX1262)
-LoraType *currentLoRaType = new LoraType{869618000, 8, 62500, 5, 10}; // default LoRa settings for SX1262
+#define LORA_FREQ 869618000
+#define LORA_SF 8
+#define LORA_BW 62500
+#define LORA_CR 5
+#define LORA_POWER 8
 SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
 #endif
 
@@ -25,25 +29,25 @@ namespace LoRa_Utils
 
     void changeFreq()
     {
-        float freq = (float)currentLoRaType->frequency / 1000000;
+        float freq = (float)LORA_FREQ / 1000000;
         radio.setFrequency(freq);
-        radio.setSpreadingFactor(currentLoRaType->spreadingFactor);
-        float signalBandwidth = currentLoRaType->signalBandwidth / 1000;
+        radio.setSpreadingFactor(LORA_SF);
+        float signalBandwidth = LORA_BW / 1000;
         radio.setBandwidth(signalBandwidth);
-        radio.setCodingRate(currentLoRaType->codingRate4);
+        radio.setCodingRate(LORA_CR);
 #if (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
-        radio.setOutputPower(currentLoRaType->power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
+        radio.setOutputPower(LORA_POWER + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
 #endif
 
         String loraCountryFreq = "EU/UK";
         String currentLoRainfo = "LoRa ";
         currentLoRainfo += loraCountryFreq;
         currentLoRainfo += " / Freq: ";
-        currentLoRainfo += String(currentLoRaType->frequency);
+        currentLoRainfo += String(LORA_FREQ);
         currentLoRainfo += " / SF:";
-        currentLoRainfo += String(currentLoRaType->spreadingFactor);
+        currentLoRainfo += String(LORA_SF);
         currentLoRainfo += " / CR: ";
-        currentLoRainfo += String(currentLoRaType->codingRate4);
+        currentLoRainfo += String(LORA_CR);
     }
 
     bool setup()
@@ -54,7 +58,7 @@ namespace LoRa_Utils
 #else
         SPI.begin(RADIO_SCLK_PIN, RADIO_MISO_PIN, RADIO_MOSI_PIN);
 #endif
-        float freq = (float)currentLoRaType->frequency / 1000000;
+        float freq = (float)LORA_FREQ / 1000000;
         int state = radio.begin(freq);
         if (state == RADIOLIB_ERR_NONE)
         {
@@ -71,14 +75,14 @@ namespace LoRa_Utils
 #if defined(HAS_SX1262) || defined(HAS_SX1268) || defined(HAS_LLCC68)
         radio.setDio1Action(setFlag);
 #endif
-        radio.setSpreadingFactor(currentLoRaType->spreadingFactor);
-        float signalBandwidth = currentLoRaType->signalBandwidth / 1000;
+        radio.setSpreadingFactor(LORA_SF);
+        float signalBandwidth = LORA_BW / 1000;
         radio.setBandwidth(signalBandwidth);
-        radio.setCodingRate(currentLoRaType->codingRate4);
+        radio.setCodingRate(LORA_CR);
         radio.setCRC(true);
 
 #if (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
-        state = radio.setOutputPower(currentLoRaType->power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
+        state = radio.setOutputPower(LORA_POWER + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
         radio.setCurrentLimit(140);
 #endif
 

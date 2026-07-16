@@ -5,11 +5,11 @@
 #include <SPI.h>
 #include <SD.h>
 #include <string>
+#include <TinyGPSPlus.h>
 
 #include "rapidxml.hpp"
 #include "rapidxml_print.hpp"
 #include "gpx.h"
-#include "HT_TinyGPS++.h"
 
 using namespace std;
 

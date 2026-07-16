@@ -1,9 +1,9 @@
 #include "main.h"
 
-TinyGPSPlus GPS;
-HT_st7735 disp;
-GPSTracker tracker(&GPS);
-LoRaAPRS aprs;
+TinyGPSPlus gps;
+Adafruit_ST7735 disp(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+GPSTracker tracker(&gps);
+// LoRaAPRS aprs;
 BoardConfig boardConfig;
 
 bool sd_card_init = false;
@@ -14,18 +14,51 @@ DateTime last_gps_time;
 String time_str;
 String message_str;
 
+void init_display()
+{
+  pinMode(TFT_CS, OUTPUT);
+  pinMode(TFT_RST, OUTPUT);
+  pinMode(TFT_CS, OUTPUT);
+
+  disp.initR(INITR_MINI160x80_PLUGIN);
+  disp.setRotation(1); // Landscape
+  disp.fillScreen(ST77XX_BLACK);
+  disp.setTextColor(ST77XX_BLUE, ST77XX_BLACK);
+
+  delay(50); // Wait for screen to clear
+
+  // Enable backlight
+  pinMode(TFT_LED, OUTPUT);
+  digitalWrite(TFT_LED, HIGH);
+}
+
 void render_screen()
 {
   switch (screen_id)
   {
   case 0: // draw main screen
-    disp.st7735_fill_screen(ST7735_BLACK);
-    last_gps_time = tracker.get_current_time();
-    time_str = String(last_gps_time.hour) + ":" + String(last_gps_time.minute) + ":" + String(last_gps_time.second);
-    disp.st7735_write_str(0, 0, time_str);
+    // disp.fillScreen(ST77XX_BLACK);
+    last_gps_time = tracker.get_current_time(); // timezone is not handled, so this will be UTC time
+    time_str = (last_gps_time.hour < 10 ? "0" : "") + String(last_gps_time.hour) + ":" + (last_gps_time.minute < 10 ? "0" : "") + String(last_gps_time.minute) + ":" + (last_gps_time.second < 10 ? "0" : "") + String(last_gps_time.second);
+    disp.setCursor(0, 0);
+    disp.setTextColor(ST77XX_BLUE, ST77XX_BLACK);
+    disp.setTextSize(2);
+    disp.print(time_str);
 
-    disp.st7735_write_str(0, 80, String(read_battery_voltage(), 1) + "V");
-    disp.st7735_write_str(20, 0, "Sat: " + String(GPS.satellites.value()));
+    disp.setCursor(125, 0);
+    disp.setTextSize(1);
+    disp.print(String(read_battery_voltage(), 1) + "V");
+
+    disp.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
+    disp.setCursor(0, 20);
+    disp.print("Sat: " + String(gps.satellites.value()));
+    disp.setCursor(60, 20);
+    disp.print("Alt: " + String(gps.altitude.meters()) + "m");
+
+    disp.setCursor(0, 30);
+    disp.print("Lat: " + String(gps.location.lat(), 4));
+    disp.setCursor(75, 30);
+    disp.print("Lon: " + String(gps.location.lng(), 4));
     break;
 
   case 1: // draw tracking screen
@@ -37,11 +70,13 @@ void render_screen()
     {
       if (i == cursor_pos)
       {
-        disp.st7735_write_str(0, 20 * i, "> " + String((MenuItems)i));
+        disp.setCursor(0, 20 * i);
+        disp.print("> " + String((MenuItems)i));
       }
       else
       {
-        disp.st7735_write_str(0, 20 * i, "  " + String((MenuItems)i));
+        disp.setCursor(0, 20 * i);
+        disp.print("  " + String((MenuItems)i));
       }
     }
     break;
@@ -49,9 +84,11 @@ void render_screen()
   case 3: // draw message screen
     if (!message_str.isEmpty())
     {
-      disp.st7735_fill_rectangle(3, 3, DISP_WIDTH - 6, DISP_HEIGHT - 6, ST7735_WHITE);
-      disp.st7735_write_str(0, 0, "Info");
-      disp.st7735_write_str(0, 20, message_str);
+      disp.fillScreen(ST77XX_WHITE);
+      disp.setCursor(0, 0);
+      disp.print("Info");
+      disp.setCursor(0, 20);
+      disp.print(message_str);
     }
     else
     {
@@ -101,10 +138,10 @@ void run_tasks(uint16_t interval_ms)
   do
   {
     while (Serial1.available())
-      GPS.encode(Serial1.read());
+      gps.encode(Serial1.read());
   } while (millis() - start < interval_ms);
 
-  if (GPS.location.isUpdated() && tracker.is_tracking_active())
+  if (gps.location.isUpdated() && tracker.is_tracking_active())
   {
     tracker.track_point();
   }
@@ -129,8 +166,7 @@ void setup()
   Serial.begin(115200);
 
   // Setup display
-  disp.st7735_init();
-  disp.st7735_fill_screen(ST7735_BLACK);
+  init_display();
 
   // Setup SD card
   /*if (!SD.begin(SD_CS))
@@ -240,25 +276,7 @@ void loop()
       }
     }
   }*/
-  // render_screen();
-
-  if (GPS.location.isUpdated())
-  {
-    disp.st7735_fill_screen(ST7735_BLACK);
-    String time_str = String(GPS.time.hour()) + ":" + String(GPS.time.minute()) + ":" + String(GPS.time.second());
-    disp.st7735_write_str(0, 0, time_str);
-    String latitude = "LAT: " + String(GPS.location.lat());
-    disp.st7735_write_str(0, 20, latitude);
-    String longitude = "LON: " + String(GPS.location.lng());
-    disp.st7735_write_str(0, 40, longitude);
-    String altitude = "ALT: " + String(GPS.altitude.meters()) + " m";
-    disp.st7735_write_str(0, 60, altitude);
-
-    Serial.printf("GPS Data: %f %f %f\n", GPS.location.lat(), GPS.location.lng(), GPS.altitude.meters());
-  } else {
-    disp.st7735_fill_screen(ST7735_BLACK);
-    disp.st7735_write_str(0, 0, "Waiting for GPS signal...");
-  }
+  render_screen();
 
   run_tasks(500); // Run GPS encoding and other tasks for 500 ms
 }

@@ -5,9 +5,10 @@
 #include <SPI.h>
 #include <SD.h>
 #include <string>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ST7735.h>
+#include <TinyGPSPlus.h>
 
-#include "HT_st7735.h"
-#include "HT_TinyGPS++.h"
 #include "gpx.h"
 
 #include "gps_tracker.h"
@@ -28,6 +29,14 @@
 #define GPS_RX 33
 #define GPS_TX 34
 #define BATT_ADC 1 // ADC1_CH0
+
+// Display definitions
+#define TFT_LED  21
+#define TFT_CS   38
+#define TFT_RST  39
+#define TFT_DC   40
+#define TFT_SCLK 41
+#define TFT_MOSI 42
 
 #define DISP_HEIGHT 80
 #define DISP_WIDTH 160
@@ -67,6 +76,7 @@ struct BoardConfig // can be overwritten with values from config.txt on SD card
 };
 
 // UI methods
+void init_display();
 void render_screen();
 float read_battery_voltage();
 

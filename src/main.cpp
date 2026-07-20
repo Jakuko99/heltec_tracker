@@ -2,8 +2,9 @@
 
 TinyGPSPlus gps;
 Adafruit_ST7735 disp(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
+LoRaAPRS aprs(&gps, &radio);
 GPSTracker tracker(&gps);
-// LoRaAPRS aprs;
 BoardConfig boardConfig;
 
 bool sd_card_init = false;
@@ -169,9 +170,10 @@ void setup()
   init_display();
 
   // Setup SD card
-  /*if (!SD.begin(SD_CS))
+  if (!SD.begin(SD_CS))
   {
-    disp.st7735_write_str(0, 0, "SD init failed!");
+    disp.setCursor(0, 0);
+    disp.print("SD init failed!");
     return;
   }
 
@@ -235,18 +237,20 @@ void setup()
 
   if (boardConfig.position_reports_enabled) // Initialize APRS if position reports are enabled
   {
-    aprs.init(String(boardConfig.callsign.c_str()), String(boardConfig.symbol.c_str()), String(boardConfig.status.c_str()));
-    aprs.assign_gps(&GPS);
+    aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
   }
 
-  disp.st7735_write_str(20, 0, "Welcome,", Font_16x26);
-  disp.st7735_write_str(20, 30, (boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User");
-  delay(1000);*/
+  disp.setCursor(20, 0);
+  disp.setTextColor(ST77XX_BLUE, ST77XX_BLACK);
+  disp.print("Welcome,");
+  disp.setCursor(20, 30);
+  disp.print((boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User");
+  delay(1000);
 }
 
 void loop()
 {
-  /*if (millis() - prev_millis > CYCLE_TIME)
+  if (millis() - prev_millis > CYCLE_TIME)
   {
     prev_millis = millis();
     PadAction action = get_action();
@@ -254,11 +258,11 @@ void loop()
     {
       // Handle button actions here
       Serial.println("Button pressed: " + String(action));
-      if (action == UP && GPS.location.isValid() && boardConfig.position_reports_enabled)
+      if (action == UP && gps.location.isValid() && boardConfig.position_reports_enabled)
       {
-        aprs.send_location();
+        aprs.send_position_report();
       }
-      else if (action == DOWN && GPS.location.isValid())
+      else if (action == DOWN && gps.location.isValid())
       {
         if (!tracker.is_tracking_active())
         {
@@ -269,13 +273,13 @@ void loop()
           tracker.end_tracking();
         }
       }
-      else if (action == MIDDLE && GPS.location.isValid())
+      else if (action == MIDDLE && gps.location.isValid())
       {
         tracker.save_waypoint();
         tracker.save_waypoint_csv();
       }
     }
-  }*/
+  }
   render_screen();
 
   run_tasks(500); // Run GPS encoding and other tasks for 500 ms

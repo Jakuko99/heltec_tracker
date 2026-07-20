@@ -7,6 +7,7 @@
 #include <string>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
+#include <RadioLib.h>
 #include <TinyGPSPlus.h>
 
 #include "gpx.h"
@@ -31,15 +32,21 @@
 #define BATT_ADC 1 // ADC1_CH0
 
 // Display definitions
-#define TFT_LED  21
-#define TFT_CS   38
-#define TFT_RST  39
-#define TFT_DC   40
+#define TFT_LED 21
+#define TFT_CS 38
+#define TFT_RST 39
+#define TFT_DC 40
 #define TFT_SCLK 41
 #define TFT_MOSI 42
 
 #define DISP_HEIGHT 80
 #define DISP_WIDTH 160
+
+// LoRa definitions
+#define RADIO_CS_PIN 8
+#define RADIO_RST_PIN 12
+#define RADIO_DIO1_PIN 14
+#define RADIO_BUSY_PIN 13
 
 #define CYCLE_TIME 100 // ms
 

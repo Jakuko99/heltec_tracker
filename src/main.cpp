@@ -41,25 +41,11 @@ void render_screen()
     // disp.fillScreen(ST77XX_BLACK);
     last_gps_time = tracker.get_current_time(); // timezone is not handled, so this will be UTC time
     time_str = (last_gps_time.hour < 10 ? "0" : "") + String(last_gps_time.hour) + ":" + (last_gps_time.minute < 10 ? "0" : "") + String(last_gps_time.minute) + ":" + (last_gps_time.second < 10 ? "0" : "") + String(last_gps_time.second);
-    disp.setCursor(0, 0);
-    disp.setTextColor(ST77XX_BLUE, ST77XX_BLACK);
-    disp.setTextSize(2);
-    disp.print(time_str);
-
-    disp.setCursor(125, 0);
-    disp.setTextSize(1);
-    disp.print(String(read_battery_voltage(), 1) + "V");
-
-    disp.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-    disp.setCursor(0, 20);
-    disp.print("Sat: " + String(gps.satellites.value()));
-    disp.setCursor(60, 20);
-    disp.print("Alt: " + String(gps.altitude.meters()) + "m");
-
-    disp.setCursor(0, 30);
-    disp.print("Lat: " + String(gps.location.lat(), 4));
-    disp.setCursor(75, 30);
-    disp.print("Lon: " + String(gps.location.lng(), 4));
+    display_text(0, 0, time_str, ST77XX_BLUE, 2);
+    display_text(125, 0, String(read_battery_voltage(), 1) + "V");
+    display_text(0, 20, "Sat:" + String(gps.satellites.value()) + " Alt: " + String(gps.altitude.meters()) + "m", ST77XX_GREEN);
+    display_text(0, 30, "Lat:" + String(gps.location.lat(), 5) + " Lon:" + String(gps.location.lng(), 5), ST77XX_CYAN);
+    display_text(0, 40, "HDOP:"+ String(gps.hdop.hdop(), 1), ST77XX_ORANGE);
     break;
 
   case 1: // draw tracking screen
@@ -85,11 +71,11 @@ void render_screen()
   case 3: // draw message screen
     if (!message_str.isEmpty())
     {
-      disp.fillScreen(ST77XX_WHITE);
-      disp.setCursor(0, 0);
-      disp.print("Info");
-      disp.setCursor(0, 20);
-      disp.print(message_str);
+      disp.drawRect(2, 2, DISP_WIDTH - 4, DISP_HEIGHT - 4, ST77XX_ORANGE);
+      disp.fillRect(8, 8, 8, 8, ST77XX_ORANGE);
+      disp.fillRect(8, 22, 8, 22, ST77XX_ORANGE);
+      display_text(22, 6, "Info", ST77XX_ORANGE, 2);      
+      display_text(22, 26, message_str, ST77XX_ORANGE);
     }
     else
     {
@@ -105,6 +91,14 @@ void render_screen()
 float read_battery_voltage()
 {
   return analogRead(BATT_ADC) * 4.9;
+}
+
+void display_text(int x, int y, const String &text, uint16_t text_color, int text_size, uint16_t bg_color)
+{
+  disp.setCursor(x, y);
+  disp.setTextColor(text_color, bg_color);
+  disp.setTextSize(text_size);
+  disp.print(text);
 }
 
 PadAction get_action()
@@ -240,12 +234,10 @@ void setup()
     aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
   }
 
-  disp.setCursor(20, 0);
-  disp.setTextColor(ST77XX_BLUE, ST77XX_BLACK);
-  disp.print("Welcome,");
-  disp.setCursor(20, 30);
-  disp.print((boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User");
+  display_text(20, 0, "Welcome,", ST77XX_GREEN);
+  display_text(20, 30, (boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User", ST77XX_GREEN);
   delay(1000);
+  disp.fillScreen(ST77XX_BLACK);
 }
 
 void loop()
@@ -280,7 +272,7 @@ void loop()
       }
     }
   }
-  render_screen();
 
+  render_screen();
   run_tasks(500); // Run GPS encoding and other tasks for 500 ms
 }

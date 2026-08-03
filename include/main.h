@@ -86,6 +86,7 @@ struct BoardConfig // can be overwritten with values from config.txt on SD card
 void init_display();
 void render_screen();
 float read_battery_voltage();
+void display_text(int x, int y, const String &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 
 // Control methods
 PadAction get_action();

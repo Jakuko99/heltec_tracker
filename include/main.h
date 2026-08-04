@@ -9,6 +9,8 @@
 #include <Adafruit_ST7735.h>
 #include <RadioLib.h>
 #include <TinyGPSPlus.h>
+#include <TimeLib.h>
+#include <Timezone.h>
 
 #include "gpx.h"
 
@@ -87,6 +89,7 @@ void init_display();
 void render_screen();
 float read_battery_voltage();
 void display_text(int x, int y, const String &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
+void display_wrapped_text(int x, int y, const String &text, int line_end, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 
 // Control methods
 PadAction get_action();

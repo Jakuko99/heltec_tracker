@@ -283,53 +283,53 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
     return false;
 }
 
-int GPSTracker::time_between(DateTime start, DateTime end)
+int GPSTracker::time_between(tmElements_t start, tmElements_t end)
 {
-    // This function calculates the time difference in seconds between two DateTime structs
-    tm *tm_start = new tm{start.second, start.minute, start.hour, start.day, start.month - 1, start.year - 1900};
-    tm *tm_end = new tm{end.second, end.minute, end.hour, end.day, end.month - 1, end.year - 1900};
+    // This function calculates the time difference in seconds between two tmElements_t structs
+    tm *tm_start = new tm{start.Second, start.Minute, start.Hour, start.Day, start.Month - 1, start.Year - 1900};
+    tm *tm_end = new tm{end.Second, end.Minute, end.Hour, end.Day, end.Month - 1, end.Year - 1900};
     time_t time_start = mktime(tm_start);
     time_t time_end = mktime(tm_end);
     return difftime(time_end, time_start);
 }
 
-DateTime GPSTracker::parse_time(string time_str)
+tmElements_t GPSTracker::parse_time(string time_str)
 {
-    // This function parses an ISO 8601 time string and returns a DateTime struct
+    // This function parses an ISO 8601 time string and returns a tmElements_t struct
     struct tm tm_time;
     strptime(time_str.c_str(), "%Y-%m-%dT%H:%M:%SZ", &tm_time);
-    DateTime dt;
-    dt.year = tm_time.tm_year + 1900;
-    dt.month = tm_time.tm_mon + 1;
-    dt.day = tm_time.tm_mday;
-    dt.hour = tm_time.tm_hour;
-    dt.minute = tm_time.tm_min;
-    dt.second = tm_time.tm_sec;
+    tmElements_t dt;
+    dt.Year = tm_time.tm_year + 1900;
+    dt.Month = tm_time.tm_mon + 1;
+    dt.Day = tm_time.tm_mday;
+    dt.Hour = tm_time.tm_hour;
+    dt.Minute = tm_time.tm_min;
+    dt.Second = tm_time.tm_sec;
     return dt;
 }
 
-string GPSTracker::format_time(DateTime dt)
+string GPSTracker::format_time(tmElements_t dt)
 {
-    // This function formats a DateTime struct into an ISO 8601 time string
+    // This function formats a tmElements_t struct into an ISO 8601 time string
     char buffer[25];
-    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02dZ", dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02dZ", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second);
     return string(buffer);
 }
 
-DateTime GPSTracker::get_current_time()
+tmElements_t GPSTracker::get_current_time()
 {
     // This function gets the current time from the GPS and returns it as a DateTime struct
     if (!GPS->date.isValid() || !GPS->time.isValid())
     {
-        return DateTime{0, 0, 0, 0, 0, 0}; // return a default time if GPS time is not valid
+        return tmElements_t{0, 0, 0, 0, 0, 0}; // return a default time if GPS time is not valid
     }
 
-    DateTime dt;
-    dt.year = GPS->date.year();
-    dt.month = GPS->date.month();
-    dt.day = GPS->date.day();
-    dt.hour = GPS->time.hour();
-    dt.minute = GPS->time.minute();
-    dt.second = GPS->time.second();
-    return dt;
+    tmElements_t tm;
+    tm.Year = CalendarYrToTm(GPS->date.year());
+    tm.Month = GPS->date.month();
+    tm.Day = GPS->date.day();
+    tm.Hour = GPS->time.hour();
+    tm.Minute = GPS->time.minute();
+    tm.Second = GPS->time.second();
+    return tm;
 }

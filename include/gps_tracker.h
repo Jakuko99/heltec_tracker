@@ -6,6 +6,7 @@
 #include <SD.h>
 #include <string>
 #include <TinyGPSPlus.h>
+#include <TimeLib.h>
 
 #include "rapidxml.hpp"
 #include "rapidxml_print.hpp"
@@ -13,22 +14,12 @@
 
 using namespace std;
 
-struct DateTime
-{
-    short year;
-    int8_t month;
-    int8_t day;
-    int8_t hour;
-    int8_t minute;
-    int8_t second;
-};
-
 struct RoutePoint
 {
     float lat;
     float lon;
     float ele;
-    DateTime time;
+    tmElements_t time;
 };
 
 class GPSTracker
@@ -51,10 +42,10 @@ public:
     bool save_waypoint();
     bool save_waypoint(float lat, float lon, float ele);
 
-    int time_between(DateTime start, DateTime end);
-    DateTime parse_time(string time_str);
-    string format_time(DateTime dt);
-    DateTime get_current_time();
+    int time_between(tmElements_t start, tmElements_t end);
+    tmElements_t parse_time(string time_str);
+    string format_time(tmElements_t dt);
+    tmElements_t get_current_time();
     void set_sd_card_init(bool _init) { sd_card_init = _init; }
     bool is_tracking_active() const { return tracking_active; }
 

@@ -1,6 +1,6 @@
 #include "main.h"
 
-#define DEBUG
+// #define DEBUG
 
 TinyGPSPlus gps;
 Adafruit_ST7735 disp(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
@@ -99,6 +99,7 @@ void render_screen()
     else
     {
       screen_id = 0; // return to main screen if no message to show
+      disp.fillScreen(ST77XX_BLACK);
     }
     break;
 
@@ -236,6 +237,7 @@ void setup()
   init_display();
 
   // Setup SD card
+  SPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
   if (!SD.begin(SD_CS))
   {
 #ifndef DEBUG
@@ -247,9 +249,9 @@ void setup()
     sd_card_init = true;
     tracker.set_sd_card_init(true);
 
-    if (SD.exists("config.txt"))
+    if (SD.exists("/config.txt"))
     {
-      File configFile = SD.open("config.txt", "r");
+      File configFile = SD.open("/config.txt", "r");
       if (configFile)
       {
         // Read configuration from file
@@ -337,6 +339,10 @@ void loop()
       {
         tracker.save_waypoint();
         tracker.save_waypoint_csv();
+      }
+      else if (action == MIDDLE && !message_str.isEmpty())
+      {
+        message_str = ""; // Dismiss message
       }
     }
   }

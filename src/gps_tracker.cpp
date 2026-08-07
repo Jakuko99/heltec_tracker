@@ -33,7 +33,7 @@ bool GPSTracker::begin_tracking()
     if (sd_card_init)
     {
         // create track file
-        track_filename = gpx_parser.getName() + ".gpx";
+        track_filename = "/" + gpx_parser.getName() + ".gpx";
         GpxFile = SD.open(track_filename.c_str(), "w");
         if (GpxFile)
         {
@@ -168,7 +168,7 @@ bool GPSTracker::init_waypoint_file()
     {
         if (!SD.exists("waypoints.gpx"))
         {
-            File waypoint_file = SD.open("waypoints.gpx", "w");
+            File waypoint_file = SD.open("/waypoints.gpx", "w");
             gpx_parser.setMetaName("Waypoints");
             if (waypoint_file)
             {
@@ -202,7 +202,7 @@ bool GPSTracker::save_waypoint_csv(float lat, float lon, float ele)
 {
     if (sd_card_init)
     {
-        File waypoint_file = SD.open("waypoints.csv", "a");
+        File waypoint_file = SD.open("/waypoints.csv", "a");
         if (waypoint_file)
         {
             // write a waypoint to the file
@@ -236,7 +236,7 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
         {
             init_waypoint_file(); // create file with header if it doesn't exist
         }
-        File waypoint_file = SD.open("waypoints.gpx", "r");
+        File waypoint_file = SD.open("/waypoints.gpx", "r");
         if (waypoint_file)
         {
             String xml_content = waypoint_file.readStringUntil(EOF); // read entire file content
@@ -260,7 +260,7 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
             rapidxml::xml_node<> *name_node = doc.allocate_node(rapidxml::node_element, "name", format_time(get_current_time()).c_str());
             wpt_node->append_node(name_node);
 
-            waypoint_file = SD.open("waypoints.gpx", "w");
+            waypoint_file = SD.open("/waypoints.gpx", "w");
             if (!waypoint_file)
             {
                 return false; // failed to open file for writing

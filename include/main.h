@@ -28,6 +28,9 @@
 #define PAD_RIGHT_PIN 46
 #define PAD_MIDDLE_PIN 4
 #define SD_CS 5
+#define SD_MISO 11
+#define SD_MOSI 10
+#define SD_SCLK 9
 #define GPS_ENABLE_PIN 3
 #define GPS_RX 33
 #define GPS_TX 34

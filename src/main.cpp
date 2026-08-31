@@ -1,27 +1,5 @@
 #include "main.h"
 
-// #define DEBUG
-
-TinyGPSPlus gps;
-Adafruit_ST7735 disp(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
-SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
-LoRaAPRS aprs(&gps, &radio);
-GPSTracker tracker(&gps);
-BoardConfig boardConfig;
-
-// Timezone settings
-TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120}; // Winter time (UTC + 1)
-TimeChangeRule CET = {"CET", Last, Sun, Oct, 3, 60};    // Summer time (UTC + 2)
-Timezone timezone_obj(CEST, CET);
-
-bool sd_card_init = false;
-int screen_id = 0;
-int cursor_pos = 0;
-unsigned long prev_millis = 0;
-tmElements_t last_gps_time;
-String time_str;
-String message_str;
-
 void init_display()
 {
   pinMode(TFT_CS, OUTPUT);
@@ -42,7 +20,8 @@ void init_display()
 
 void render_screen()
 {
-  screen_id = message_str.isEmpty() ? screen_id : 3; // If there's a message, show the message screen
+  screen_id = message_str.empty() ? screen_id : 3; // If there's a message, show the message screen
+  // screen_id = ((info_str.empty()) && (screen_id == 3)) ? screen_id : 4; // If there's an info message, show the info screen
 
   switch (screen_id)
   {
@@ -54,47 +33,68 @@ void render_screen()
     time_t local_time = timezone_obj.toLocal(utc_time);
 
     time_str =
-        String(hour(local_time) < 10 ? "0" : "") + String(hour(local_time)) + ":" +
-        String(minute(local_time) < 10 ? "0" : "") + String(minute(local_time)) + ":" +
-        String(second(local_time) < 10 ? "0" : "") + String(second(local_time));
+        string(hour(local_time) < 10 ? "0" : "") + to_string(hour(local_time)) + ":" +
+        string(minute(local_time) < 10 ? "0" : "") + to_string(minute(local_time)) + ":" +
+        string(second(local_time) < 10 ? "0" : "") + to_string(second(local_time));
 
     display_text(0, 0, time_str, ST77XX_BLUE, 2);
-    display_text(125, 0, String(read_battery_voltage(), 1) + "V");
-    display_text(0, 20, "Sat:" + String(gps.satellites.value()) + " Alt: " + String(gps.altitude.meters()) + "m", ST77XX_GREEN);
-    display_text(0, 30, "Lat:" + String(gps.location.lat(), 5) + " Lon:" + String(gps.location.lng(), 5), ST77XX_CYAN);
-    display_text(0, 40, "HDOP:" + String(gps.hdop.hdop(), 1), ST77XX_ORANGE);
+    display_text(125, 0, to_string_with_precision(Round(read_battery_voltage(), 1), 1) + "V");
+    display_text(0, 20, "Sat:" + to_string(gps.satellites.value()) + " Alt: " + to_string_with_precision(Round(gps.altitude.meters(), 1), 1) + "m", ST77XX_GREEN);
+    display_text(0, 30, "Lat:" + to_string_with_precision(Round(gps.location.lat(), 5), COORD_PRECISION) + " Lon:" + to_string_with_precision(Round(gps.location.lng(), 5), COORD_PRECISION), ST77XX_CYAN);
+    display_text(0, 40, "HDOP:" + to_string_with_precision(Round(gps.hdop.hdop(), 1), 1), ST77XX_ORANGE);
+
+    if (tracker.is_tracking_active())
+    {
+      disp.fillCircle(6, 71, 4, ST77XX_RED);
+      display_text(14, 68, to_string(tracker.get_recorded_points()), ST77XX_WHITE);
+    }
     break;
   }
 
-  case 1: // draw tracking screen
+  case 1: // draw navigation screen
 
     break;
 
   case 2: // draw settings screen
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 4; i++)
     {
       if (i == cursor_pos)
       {
-        disp.setCursor(0, 20 * i);
-        disp.print("> " + String((MenuItems)i));
+        display_text(3, (11 * i) + 3, "> " + menu_items[i], ST77XX_BLUE);
       }
       else
       {
-        disp.setCursor(0, 20 * i);
-        disp.print("  " + String((MenuItems)i));
+        display_text(3, (11 * i) + 3, "  " + menu_items[i], ST77XX_BLUE);
       }
     }
     break;
 
-  case 3: // draw message screen
-    if (!message_str.isEmpty())
+  case 3: // draw warning screen
+    if (!message_str.empty())
     {
       disp.drawRect(2, 2, DISP_WIDTH - 4, DISP_HEIGHT - 4, ST77XX_ORANGE);
-      disp.fillCircle(12, 12, 4, ST77XX_ORANGE);
-      disp.fillRect(8, 22, 8, 22, ST77XX_ORANGE);
-      display_text(22, 7, "Info", ST77XX_ORANGE, 2);
+      disp.fillRect(8, 8, 8, 22, ST77XX_ORANGE);
+      disp.fillCircle(12, 38, 4, ST77XX_ORANGE);
+      display_text(22, 7, "Warning", ST77XX_ORANGE, 2);
       display_wrapped_text(22, 26, message_str, DISP_WIDTH - 5, ST77XX_ORANGE);
       display_text(24, DISP_HEIGHT - 14, "Press OK to dismiss", ST77XX_ORANGE);
+    }
+    else
+    {
+      screen_id = 0; // return to main screen if no message to show
+      disp.fillScreen(ST77XX_BLACK);
+    }
+    break;
+
+  case 4: // draw info screen
+    if (!info_str.empty())
+    {
+      disp.drawRect(2, 2, DISP_WIDTH - 4, DISP_HEIGHT - 4, ST77XX_GREEN);
+      disp.fillCircle(12, 12, 4, ST77XX_GREEN);
+      disp.fillRect(8, 22, 8, 22, ST77XX_GREEN);
+      display_text(22, 7, "Info", ST77XX_GREEN, 2);
+      display_wrapped_text(22, 26, info_str, DISP_WIDTH - 5, ST77XX_GREEN);
+      display_text(24, DISP_HEIGHT - 14, "Press OK to dismiss", ST77XX_GREEN);
     }
     else
     {
@@ -106,6 +106,70 @@ void render_screen()
   default:
     break;
   }
+  display_text(25, 68, to_string(screen_id), ST77XX_MAGENTA);
+}
+
+void exit_menu()
+{
+  screen_id = 0;
+  cursor_pos = 0;
+  disp.fillScreen(ST77XX_BLACK);
+}
+
+void IRAM_ATTR button_handler(int btn_id)
+{
+  switch (btn_id)
+  {
+  case UP:
+
+    if (screen_id == 2)
+    {
+      cursor_pos = (cursor_pos - 1 + 4) % 4; // Wrap around the menu items
+    }
+    break;
+  case DOWN:
+    if (screen_id == 2)
+    {
+      cursor_pos = (cursor_pos + 1) % 4; // Wrap around the menu items
+    }
+    break;
+  case MIDDLE:
+    if (!message_str.empty())
+    {
+      message_str = ""; // Dismiss message
+    }
+    else if (!info_str.empty())
+    {
+      info_str = ""; // Dismiss info
+    }
+    else if (screen_id == 0)
+    {
+      screen_id = 2;
+      disp.fillScreen(ST77XX_BLACK);
+    }
+    else if (screen_id == 2)
+    {
+      switch (cursor_pos)
+      {
+      case START_TRACKING:
+        int_flag = START_TRACKING; // Set flag to start/stop tracking
+        exit_menu();
+        break;
+      case SAVE_WAYPOINT:
+        int_flag = SAVE_WAYPOINT; // Set flag to save waypoint
+        exit_menu();
+        break;
+      case SEND_POSITION:
+        int_flag = SEND_POSITION; // Set flag to send position
+        exit_menu();
+        break;
+      case EXIT:
+        exit_menu();
+        break;
+      }
+    }
+    break;
+  }
 }
 
 float read_battery_voltage()
@@ -113,15 +177,29 @@ float read_battery_voltage()
   return analogRead(BATT_ADC) * 4.9;
 }
 
-void display_text(int x, int y, const String &text, uint16_t text_color, int text_size, uint16_t bg_color)
+double Round(double value, int decimals)
+{
+  double factor = pow(10, decimals);
+  return std::round(value * factor) / factor;
+}
+
+string to_string_with_precision(const double a_value, int n)
+{
+  ostringstream out;
+  out.precision(n);
+  out << fixed << a_value;
+  return move(out).str();
+}
+
+void display_text(int x, int y, const string &text, uint16_t text_color, int text_size, uint16_t bg_color)
 {
   disp.setCursor(x, y);
   disp.setTextColor(text_color, bg_color);
   disp.setTextSize(text_size);
-  disp.print(text);
+  disp.print(String(text.c_str()));
 }
 
-void display_wrapped_text(int x, int y, const String &text, int line_end, uint16_t text_color, int text_size, uint16_t bg_color)
+void display_wrapped_text(int x, int y, const string &text, int line_end, uint16_t text_color, int text_size, uint16_t bg_color)
 {
   disp.setTextWrap(false); // Disable text wrapping
   disp.setTextColor(text_color, bg_color);
@@ -174,31 +252,6 @@ void display_wrapped_text(int x, int y, const String &text, int line_end, uint16
   disp.setTextWrap(true); // Re-enable text wrapping
 }
 
-PadAction get_action()
-{
-  if (digitalRead(PAD_UP_PIN) == LOW)
-  {
-    return UP;
-  }
-  else if (digitalRead(PAD_DOWN_PIN) == LOW)
-  {
-    return DOWN;
-  }
-  else if (digitalRead(PAD_LEFT_PIN) == LOW)
-  {
-    return LEFT;
-  }
-  else if (digitalRead(PAD_RIGHT_PIN) == LOW)
-  {
-    return RIGHT;
-  }
-  else if (digitalRead(PAD_MIDDLE_PIN) == LOW)
-  {
-    return MIDDLE;
-  }
-  return NONE;
-}
-
 void run_tasks(uint16_t interval_ms)
 {
   unsigned long start = millis();
@@ -213,6 +266,38 @@ void run_tasks(uint16_t interval_ms)
   {
     tracker.track_point();
   }
+
+  switch (int_flag)
+  {
+  case START_TRACKING:
+    if (tracker.is_tracking_active())
+    {
+      tracker.end_tracking();
+      menu_items[0] = "Start Tracking"; // Change menu item back to "Start Tracking"
+    }
+    else
+    {
+      tracker.begin_tracking();
+      menu_items[0] = "Stop Tracking"; // Change menu item to "Stop Tracking"
+    }
+    int_flag = -1; // Reset flag
+    break;
+  case SAVE_WAYPOINT:
+    if (gps.location.isValid())
+    {
+      tracker.save_waypoint();
+      tracker.save_waypoint_csv();
+    }
+    int_flag = -1; // Reset flag
+    break;
+  case SEND_POSITION:
+    if (gps.location.isValid() && boardConfig.position_reports_enabled)
+    {
+      aprs.send_position_report();
+    }
+    int_flag = -1; // Reset flag
+    break;
+  }
 }
 
 void setup()
@@ -223,6 +308,18 @@ void setup()
   pinMode(PAD_LEFT_PIN, INPUT_PULLUP);
   pinMode(PAD_RIGHT_PIN, INPUT_PULLUP);
   pinMode(PAD_MIDDLE_PIN, INPUT_PULLUP);
+
+  // Setup button interrupts
+  attachInterrupt(digitalPinToInterrupt(PAD_UP_PIN), []()
+                  { button_handler(UP); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_DOWN_PIN), []()
+                  { button_handler(DOWN); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_LEFT_PIN), []()
+                  { button_handler(LEFT); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_RIGHT_PIN), []()
+                  { button_handler(RIGHT); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_MIDDLE_PIN), []()
+                  { button_handler(MIDDLE); }, FALLING);
 
   // Setup ADC for battery monitoring
   pinMode(BATT_ADC, INPUT);
@@ -291,6 +388,7 @@ void setup()
         configFile.close();
         boardConfig.position_reports_enabled = ((boardConfig.position_report_interval > 0) && (boardConfig.callsign != "NOCALL"));
         tracker.load_config(boardConfig.tracking_distance, boardConfig.tracking_interval, boardConfig.track_desc);
+        info_str = "Configuration loaded from SD card.";
       }
       else
       {
@@ -305,7 +403,7 @@ void setup()
   }
 
   display_text(30, 20, "Welcome,", ST77XX_YELLOW, 2);
-  display_text(30, 40, (boardConfig.callsign != "NOCALL") ? String(boardConfig.callsign.c_str()) : "User", ST77XX_YELLOW, 2);
+  display_text(30, 40, (boardConfig.callsign != "NOCALL") ? boardConfig.callsign : "User", ST77XX_YELLOW, 2);
   delay(1000);
   disp.fillScreen(ST77XX_BLACK);
 }
@@ -315,36 +413,7 @@ void loop()
   if (millis() - prev_millis > CYCLE_TIME)
   {
     prev_millis = millis();
-    PadAction action = get_action();
-    if (action != NONE)
-    {
-      // Handle button actions here
-      Serial.println("Button pressed: " + String(action));
-      if (action == UP && gps.location.isValid() && boardConfig.position_reports_enabled)
-      {
-        aprs.send_position_report();
-      }
-      else if (action == DOWN && gps.location.isValid())
-      {
-        if (!tracker.is_tracking_active())
-        {
-          tracker.begin_tracking();
-        }
-        else
-        {
-          tracker.end_tracking();
-        }
-      }
-      else if (action == MIDDLE && gps.location.isValid())
-      {
-        tracker.save_waypoint();
-        tracker.save_waypoint_csv();
-      }
-      else if (action == MIDDLE && !message_str.isEmpty())
-      {
-        message_str = ""; // Dismiss message
-      }
-    }
+    // do stuff here every CYCLE_TIME milliseconds
   }
 
   render_screen();

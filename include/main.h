@@ -5,6 +5,8 @@
 #include <SPI.h>
 #include <SD.h>
 #include <string>
+#include <sstream>
+#include <vector>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 #include <RadioLib.h>
@@ -22,8 +24,8 @@
 #define WIRELESS_TRACKER_V2
 
 // Pin definitions
-#define PAD_UP_PIN 43
-#define PAD_DOWN_PIN 44
+#define PAD_UP_PIN 44
+#define PAD_DOWN_PIN 43
 #define PAD_LEFT_PIN 45
 #define PAD_RIGHT_PIN 46
 #define PAD_MIDDLE_PIN 4
@@ -54,25 +56,25 @@
 #define RADIO_BUSY_PIN 13
 
 #define CYCLE_TIME 100 // ms
+#define COORD_PRECISION 5 // number of decimal places for coordinates
 
 using namespace std;
 
-enum PadAction
+enum PadDirection
 {
-    NONE,
     UP,
     DOWN,
+    MIDDLE,
     LEFT,
     RIGHT,
-    MIDDLE
 };
 
 enum MenuItems
 {
     START_TRACKING,
-    STOP_TRACKING,
     SAVE_WAYPOINT,
     SEND_POSITION,
+    EXIT,
 };
 
 struct BoardConfig // can be overwritten with values from config.txt on SD card
@@ -87,15 +89,46 @@ struct BoardConfig // can be overwritten with values from config.txt on SD card
     bool position_reports_enabled = false;
 };
 
+// Global objects
+TinyGPSPlus gps;
+Adafruit_ST7735 disp(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUSY_PIN);
+LoRaAPRS aprs(&gps, &radio);
+GPSTracker tracker(&gps);
+BoardConfig boardConfig;
+vector<string> menu_items = {
+    {"Start Tracking"},
+    {"Save Waypoint"},
+    {"Send Position"},
+    {"Exit"},
+};
+int int_flag = -1; // flag to indicate which action to take after menu selection
+
+// Timezone settings
+TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120}; // Winter time (UTC + 1)
+TimeChangeRule CET = {"CET", Last, Sun, Oct, 3, 60};    // Summer time (UTC + 2)
+Timezone timezone_obj(CEST, CET);
+
+// Global variables
+bool sd_card_init = false;
+volatile int screen_id = 0;
+volatile int cursor_pos = 0;
+string message_str;
+string info_str;
+unsigned long prev_millis = 0;
+tmElements_t last_gps_time;
+string time_str;
+
 // UI methods
 void init_display();
 void render_screen();
+void exit_menu();
+void IRAM_ATTR button_handler(int btn_id);
 float read_battery_voltage();
-void display_text(int x, int y, const String &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
-void display_wrapped_text(int x, int y, const String &text, int line_end, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
-
-// Control methods
-PadAction get_action();
+double Round(double value, int decimals);
+string to_string_with_precision(const double a_value, int n = 6);
+void display_text(int x, int y, const string &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
+void display_wrapped_text(int x, int y, const string &text, int line_end, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 
 void run_tasks(uint16_t);
 void setup();

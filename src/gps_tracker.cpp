@@ -27,7 +27,7 @@ void GPSTracker::load_config(float track_distance, int track_interval, string tr
 bool GPSTracker::begin_tracking()
 {
     // set metadata for GPX file
-    gpx_parser.setName("track-" + format_time(get_current_time()));
+    gpx_parser.setName("track-" + format_time_filename(get_current_time()));
     // gpx_parser.setSrc("GPS Tracker");
 
     if (sd_card_init)
@@ -45,6 +45,7 @@ bool GPSTracker::begin_tracking()
             GpxFile.print(gpx_parser.getTrakSegOpen().c_str());
             GpxFile.close();
             tracking_active = true;
+            recorded_points = 0; // reset recorded points counter
             return true;
         }
     }
@@ -86,6 +87,7 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
             // write a track point to the file
             GpxFile.print(gpx_parser.getPt(GPX_TRKPT, last_point->lat, last_point->lon, last_point->ele, format_time(last_point->time), GPS->satellites.value()).c_str());
             GpxFile.close();
+            recorded_points++; // increment recorded points counter
             return true;
         }
     }
@@ -312,7 +314,14 @@ string GPSTracker::format_time(tmElements_t dt)
 {
     // This function formats a tmElements_t struct into an ISO 8601 time string
     char buffer[25];
-    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02dZ", dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second);
+    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02dT%02d:%02d:%02dZ", dt.Year + 1970, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second);
+    return string(buffer);
+}
+
+string GPSTracker::format_time_filename(tmElements_t dt)
+{
+    char buffer[25];
+    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d_%02d-%02d-%02d", dt.Year + 1970, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second);
     return string(buffer);
 }
 

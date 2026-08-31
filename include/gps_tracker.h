@@ -45,9 +45,11 @@ public:
     int time_between(tmElements_t start, tmElements_t end);
     tmElements_t parse_time(string time_str);
     string format_time(tmElements_t dt);
+    string format_time_filename(tmElements_t dt);
     tmElements_t get_current_time();
     void set_sd_card_init(bool _init) { sd_card_init = _init; }
     bool is_tracking_active() const { return tracking_active; }
+    long int get_recorded_points() const { return recorded_points; }
 
 private:
     std::unique_ptr<RoutePoint> last_point = nullptr;
@@ -56,6 +58,7 @@ private:
     bool sd_card_init = false;
     float tracking_distance; // minimum distance in meters to log a new point
     int tracking_interval;   // minimum time in seconds to log a new point
+    long int recorded_points;      // number of points recorded in the current track
     string track_desc;       // description for the track
     GPX gpx_parser;
     rapidxml::xml_document<> doc;

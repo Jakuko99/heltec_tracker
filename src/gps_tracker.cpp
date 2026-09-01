@@ -75,7 +75,7 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
             if (last_point != nullptr)
             {
                 float distance = GPS->distanceBetween(last_point->lat, last_point->lon, lat, lon);
-                if (distance < tracking_distance || (time_between(last_point->time, get_current_time()) < tracking_interval))
+                if (distance < tracking_distance && (time_between(last_point->time, get_current_time()) < tracking_interval))
                 {
                     // skip point if it's too close to the last one
                     GpxFile.close();

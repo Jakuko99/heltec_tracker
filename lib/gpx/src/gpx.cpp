@@ -78,7 +78,7 @@ string GPX::getName()
   return _name;
 }
 
-string GPX::getPt(string typ, float lon, float lat)
+string GPX::getPt(string typ, float lat, float lon)
 {
   string localStr(_GPX_PT_HEAD);
   localStr.replace(localStr.find("TYPE"), 4, typ);
@@ -126,34 +126,34 @@ string GPX::getPt(string typ, float lon, float lat)
   return localStr;
 }
 
-string GPX::getPt(string typ, float lon, float lat, float ele)
+string GPX::getPt(string typ, float lat, float lon, float ele)
 {
   setEle(ele);
-  return getPt(typ, lon, lat);
+  return getPt(typ, lat, lon);
 }
 
-string GPX::getPt(string typ, float lon, float lat, float ele, string time)
+string GPX::getPt(string typ, float lat, float lon, float ele, string time)
 {
   setEle(ele);
   setTime(time);
-  return getPt(typ, lon, lat);
+  return getPt(typ, lat, lon);
 }
 
-string GPX::getPt(string typ, float lon, float lat, float ele, string time, int num_sat)
+string GPX::getPt(string typ, float lat, float lon, float ele, string time, int num_sat)
 {
   setEle(ele);
   setTime(time);
   setNumSat(num_sat);
-  return getPt(typ, lon, lat);
+  return getPt(typ, lat, lon);
 }
 
-string GPX::getPt(string typ, float lon, float lat, float ele, string time, int num_sat, float horizontal_accuracy)
+string GPX::getPt(string typ, float lat, float lon, float ele, string time, int num_sat, float horizontal_accuracy)
 {
   setEle(ele);
   setTime(time);
   setNumSat(num_sat);
   setHorizontalAccuracy(horizontal_accuracy);
-  return getPt(typ, lon, lat);
+  return getPt(typ, lat, lon);
 }
 
 // Set Methods

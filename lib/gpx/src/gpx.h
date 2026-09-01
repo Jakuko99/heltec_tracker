@@ -52,11 +52,11 @@ public:
   string getTrakSegClose();
   string getInfo();
   string getName();
-  string getPt(string typ, float lon, float lat);
-  string getPt(string typ, float lon, float lat, float ele);
-  string getPt(string typ, float lon, float lat, float ele, string time);
-  string getPt(string typ, float lon, float lat, float ele, string time, int num_sat);
-  string getPt(string typ, float lon, float lat, float ele, string time, int num_sat, float horizontal_accuracy);
+  string getPt(string typ, float lat, float lon);
+  string getPt(string typ, float lat, float lon, float ele);
+  string getPt(string typ, float lat, float lon, float ele, string time);
+  string getPt(string typ, float lat, float lon, float ele, string time, int num_sat);
+  string getPt(string typ, float lat, float lon, float ele, string time, int num_sat, float horizontal_accuracy);
   void setMetaName(string name);
   void setMetaDesc(string desc);
   void setName(string name);

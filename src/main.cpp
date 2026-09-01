@@ -21,7 +21,6 @@ void init_display()
 void render_screen()
 {
   screen_id = message_str.empty() ? screen_id : 3; // If there's a message, show the message screen
-  // screen_id = ((info_str.empty()) && (screen_id == 3)) ? screen_id : 4; // If there's an info message, show the info screen
 
   switch (screen_id)
   {
@@ -38,15 +37,18 @@ void render_screen()
         string(second(local_time) < 10 ? "0" : "") + to_string(second(local_time));
 
     display_text(0, 0, time_str, ST77XX_BLUE, 2);
-    display_text(125, 0, to_string_with_precision(Round(read_battery_voltage(), 1), 1) + "V");
-    display_text(0, 20, "Sat:" + to_string(gps.satellites.value()) + " Alt: " + to_string_with_precision(Round(gps.altitude.meters(), 1), 1) + "m", ST77XX_GREEN);
-    display_text(0, 30, "Lat:" + to_string_with_precision(Round(gps.location.lat(), 5), COORD_PRECISION) + " Lon:" + to_string_with_precision(Round(gps.location.lng(), 5), COORD_PRECISION), ST77XX_CYAN);
-    display_text(0, 40, "HDOP:" + to_string_with_precision(Round(gps.hdop.hdop(), 1), 1), ST77XX_ORANGE);
+    display_text(0, 19, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 2);
+
+    display_text(110, 19, "Sat: " + to_string(gps.satellites.value()), ST77XX_GREEN);
+    display_text(110, 29, to_string_rounded(gps.altitude.meters(), 1) + " m", ST77XX_CYAN);
+
+    display_text(0, 50, "Lat:" + to_string_rounded(gps.location.lat(), 5) + " Lon:" + to_string_rounded(gps.location.lng(), 5), ST77XX_CYAN);
+    display_text(0, 60, "HDOP:" + to_string_rounded(gps.hdop.hdop(), 1), ST77XX_ORANGE);
 
     if (tracker.is_tracking_active())
     {
-      disp.fillCircle(6, 71, 4, ST77XX_RED);
-      display_text(14, 68, to_string(tracker.get_recorded_points()), ST77XX_WHITE);
+      disp.fillCircle(125, 6, 4, ST77XX_RED);
+      display_text(133, 4, to_string(tracker.get_recorded_points()), ST77XX_WHITE);
     }
     break;
   }
@@ -86,27 +88,9 @@ void render_screen()
     }
     break;
 
-  case 4: // draw info screen
-    if (!info_str.empty())
-    {
-      disp.drawRect(2, 2, DISP_WIDTH - 4, DISP_HEIGHT - 4, ST77XX_GREEN);
-      disp.fillCircle(12, 12, 4, ST77XX_GREEN);
-      disp.fillRect(8, 22, 8, 22, ST77XX_GREEN);
-      display_text(22, 7, "Info", ST77XX_GREEN, 2);
-      display_wrapped_text(22, 26, info_str, DISP_WIDTH - 5, ST77XX_GREEN);
-      display_text(24, DISP_HEIGHT - 14, "Press OK to dismiss", ST77XX_GREEN);
-    }
-    else
-    {
-      screen_id = 0; // return to main screen if no message to show
-      disp.fillScreen(ST77XX_BLACK);
-    }
-    break;
-
   default:
     break;
   }
-  display_text(25, 68, to_string(screen_id), ST77XX_MAGENTA);
 }
 
 void exit_menu()
@@ -138,10 +122,6 @@ void IRAM_ATTR button_handler(int btn_id)
     {
       message_str = ""; // Dismiss message
     }
-    else if (!info_str.empty())
-    {
-      info_str = ""; // Dismiss info
-    }
     else if (screen_id == 0)
     {
       screen_id = 2;
@@ -172,22 +152,14 @@ void IRAM_ATTR button_handler(int btn_id)
   }
 }
 
-float read_battery_voltage()
-{
-  return analogRead(BATT_ADC) * 4.9;
-}
-
-double Round(double value, int decimals)
+string to_string_rounded(double value, int decimals)
 {
   double factor = pow(10, decimals);
-  return std::round(value * factor) / factor;
-}
-
-string to_string_with_precision(const double a_value, int n)
-{
+  value = std::round(value * factor) / factor;
   ostringstream out;
-  out.precision(n);
-  out << fixed << a_value;
+  out.precision(decimals);
+  out << fixed << value;
+  ;
   return move(out).str();
 }
 
@@ -388,7 +360,6 @@ void setup()
         configFile.close();
         boardConfig.position_reports_enabled = ((boardConfig.position_report_interval > 0) && (boardConfig.callsign != "NOCALL"));
         tracker.load_config(boardConfig.tracking_distance, boardConfig.tracking_interval, boardConfig.track_desc);
-        info_str = "Configuration loaded from SD card.";
       }
       else
       {

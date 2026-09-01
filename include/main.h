@@ -114,7 +114,6 @@ bool sd_card_init = false;
 volatile int screen_id = 0;
 volatile int cursor_pos = 0;
 string message_str;
-string info_str;
 unsigned long prev_millis = 0;
 tmElements_t last_gps_time;
 string time_str;
@@ -124,9 +123,7 @@ void init_display();
 void render_screen();
 void exit_menu();
 void IRAM_ATTR button_handler(int btn_id);
-float read_battery_voltage();
-double Round(double value, int decimals);
-string to_string_with_precision(const double a_value, int n = 6);
+string to_string_rounded(double value, int decimals);
 void display_text(int x, int y, const string &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 void display_wrapped_text(int x, int y, const string &text, int line_end, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 

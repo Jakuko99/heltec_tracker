@@ -195,7 +195,7 @@ bool GPSTracker::save_waypoint_csv()
         float lat = GPS->location.lat();
         float lon = GPS->location.lng();
         float ele = GPS->altitude.meters();
-        return save_waypoint(lat, lon, ele);
+        return save_waypoint_csv(lat, lon, ele);
     }
     return false;
 }

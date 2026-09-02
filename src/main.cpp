@@ -40,15 +40,21 @@ void render_screen()
     display_text(0, 19, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 2);
 
     display_text(110, 19, "Sat: " + to_string(gps.satellites.value()), ST77XX_GREEN);
-    display_text(110, 29, to_string_rounded(gps.altitude.meters(), 1) + " m", ST77XX_CYAN);
+    display_text(110, 29, "HP:" + to_string_rounded(gps.hdop.hdop(), 1), ST77XX_ORANGE);
 
-    display_text(0, 50, "Lat:" + to_string_rounded(gps.location.lat(), 5) + " Lon:" + to_string_rounded(gps.location.lng(), 5), ST77XX_CYAN);
-    display_text(0, 60, "HDOP:" + to_string_rounded(gps.hdop.hdop(), 1), ST77XX_ORANGE);
+    display_text(0, 39, to_string_rounded(gps.altitude.meters(), 1) + " m", ST77XX_CYAN, 2);
+
+    display_text(0, 60, "Lat:" + to_string_rounded(gps.location.lat(), 5) + " Lon:" + to_string_rounded(gps.location.lng(), 5), ST77XX_GREEN);
 
     if (tracker.is_tracking_active())
     {
       disp.fillCircle(125, 6, 4, ST77XX_RED);
       display_text(133, 4, to_string(tracker.get_recorded_points()), ST77XX_WHITE);
+    }
+
+    if (boardConfig.position_reports_enabled)
+    {
+      disp.fillCircle(112, 6, 4, ST77XX_ORANGE);
     }
     break;
   }

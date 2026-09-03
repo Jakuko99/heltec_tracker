@@ -244,6 +244,17 @@ void run_tasks(uint16_t interval_ms)
   {
     tracker.track_point();
   }
+  if (gps.location.isUpdated() && boardConfig.position_reports_enabled)
+  {
+    if (last_report_time == nullptr || tracker.time_between(*last_report_time, last_gps_time) >= boardConfig.position_report_interval)
+    {
+      if (!aprs.send_position_report())
+      {
+        message_str = "Failed to send position report.";
+      }
+      last_report_time.reset(new tmElements_t(last_gps_time));
+    }
+  }
 
   switch (int_flag)
   {
@@ -271,7 +282,10 @@ void run_tasks(uint16_t interval_ms)
   case SEND_POSITION:
     if (gps.location.isValid() && boardConfig.position_reports_enabled)
     {
-      aprs.send_position_report();
+      if (aprs.send_position_report())
+      {
+        message_str = "Position report sent successfully.";
+      }
     }
     int_flag = -1; // Reset flag
     break;
@@ -363,6 +377,7 @@ void setup()
             boardConfig.position_report_interval = line.substring(24).toInt();
           }
         }
+
         configFile.close();
         boardConfig.position_reports_enabled = ((boardConfig.position_report_interval > 0) && (boardConfig.callsign != "NOCALL"));
         tracker.load_config(boardConfig.tracking_distance, boardConfig.tracking_interval, boardConfig.track_desc);

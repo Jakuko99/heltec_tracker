@@ -116,6 +116,7 @@ volatile int cursor_pos = 0;
 string message_str;
 unsigned long prev_millis = 0;
 tmElements_t last_gps_time;
+std::unique_ptr<tmElements_t> last_report_time;
 string time_str;
 
 // UI methods

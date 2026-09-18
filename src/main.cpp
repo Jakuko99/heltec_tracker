@@ -294,27 +294,8 @@ void run_tasks(uint16_t interval_ms)
 
 void setup()
 {
-  // Setup buttons
-  pinMode(PAD_UP_PIN, INPUT_PULLUP);
-  pinMode(PAD_DOWN_PIN, INPUT_PULLUP);
-  pinMode(PAD_LEFT_PIN, INPUT_PULLUP);
-  pinMode(PAD_RIGHT_PIN, INPUT_PULLUP);
-  pinMode(PAD_MIDDLE_PIN, INPUT_PULLUP);
-
-  // Setup button interrupts
-  attachInterrupt(digitalPinToInterrupt(PAD_UP_PIN), []()
-                  { button_handler(UP); }, FALLING);
-  attachInterrupt(digitalPinToInterrupt(PAD_DOWN_PIN), []()
-                  { button_handler(DOWN); }, FALLING);
-  attachInterrupt(digitalPinToInterrupt(PAD_LEFT_PIN), []()
-                  { button_handler(LEFT); }, FALLING);
-  attachInterrupt(digitalPinToInterrupt(PAD_RIGHT_PIN), []()
-                  { button_handler(RIGHT); }, FALLING);
-  attachInterrupt(digitalPinToInterrupt(PAD_MIDDLE_PIN), []()
-                  { button_handler(MIDDLE); }, FALLING);
-
   // Setup ADC for battery monitoring
-  pinMode(BATT_ADC, INPUT);
+  // pinMode(BATT_ADC, INPUT);
 
   // Setup GPS
   pinMode(GPS_ENABLE_PIN, OUTPUT);
@@ -324,6 +305,13 @@ void setup()
 
   // Setup display
   init_display();
+
+  // Setup buttons, interrupts will be attached at the end of setup
+  pinMode(PAD_UP_PIN, INPUT_PULLUP);
+  pinMode(PAD_DOWN_PIN, INPUT_PULLUP);
+  pinMode(PAD_LEFT_PIN, INPUT_PULLUP);
+  pinMode(PAD_RIGHT_PIN, INPUT_PULLUP);
+  pinMode(PAD_MIDDLE_PIN, INPUT_PULLUP);
 
   // Setup SD card
   SPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
@@ -372,10 +360,10 @@ void setup()
           {
             boardConfig.status = line.substring(7).c_str();
           }
-          else if (line.startsWith("POSITION_REPORT_INTERVAL="))
+          /*else if (line.startsWith("POSITION_REPORT_INTERVAL="))
           {
             boardConfig.position_report_interval = line.substring(24).toInt();
-          }
+          }*/
         }
 
         configFile.close();
@@ -389,10 +377,35 @@ void setup()
     }
   }
 
+  if (digitalRead(PAD_MIDDLE_PIN) == LOW) // USB mode for accessing SD card
+  {
+    usb_mode = true;
+    display_text(30, 30, "USB mode", ST77XX_RED, 2);
+
+    /*if (init_usb_msc())
+    {
+      display_text(30, 50, "USB MSC initialized", ST77XX_GREEN);
+    }*/
+
+    return; // Skip the rest of the setup if USB mode is active
+  }
+
   if (boardConfig.position_reports_enabled) // Initialize APRS if position reports are enabled
   {
     aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
   }
+
+  // Setup button interrupts
+  attachInterrupt(digitalPinToInterrupt(PAD_UP_PIN), []()
+                  { button_handler(UP); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_DOWN_PIN), []()
+                  { button_handler(DOWN); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_LEFT_PIN), []()
+                  { button_handler(LEFT); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_RIGHT_PIN), []()
+                  { button_handler(RIGHT); }, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PAD_MIDDLE_PIN), []()
+                  { button_handler(MIDDLE); }, FALLING);
 
   display_text(30, 20, "Welcome,", ST77XX_YELLOW, 2);
   display_text(30, 40, (boardConfig.callsign != "NOCALL") ? boardConfig.callsign : "User", ST77XX_YELLOW, 2);
@@ -402,12 +415,45 @@ void setup()
 
 void loop()
 {
-  if (millis() - prev_millis > CYCLE_TIME)
+  if (!usb_mode)
   {
-    prev_millis = millis();
-    // do stuff here every CYCLE_TIME milliseconds
-  }
+    if (millis() - prev_millis > CYCLE_TIME)
+    {
+      prev_millis = millis();
+      // do stuff here every CYCLE_TIME milliseconds
+    }
 
-  render_screen();
-  run_tasks(500); // Run GPS encoding and other tasks for 500 ms
+    render_screen();
+    run_tasks(500); // Run GPS encoding and other tasks for 500 ms
+  }
+}
+
+// ----- USB MSC methods -----
+bool init_usb_msc()
+{
+  msc.vendorID("REF32");
+  msc.productID("USB_MSC");
+  msc.productRevision("1.0");
+  msc.onRead(onRead);
+  msc.onWrite(onWrite);
+  msc.onStartStop([](uint8_t power_condition, bool start, bool load_eject)
+                  { return true; }); // Accept all start/stop commands
+  msc.mediaPresent(true);
+
+  bool state = msc.begin(DISK_SECTOR_COUNT, DISK_SECTOR_SIZE);
+  USB.begin();
+
+  return state;
+}
+
+static int32_t onWrite(uint32_t lba, uint32_t offset, uint8_t *buffer, uint32_t bufsize)
+{
+  SD.writeRAW((uint8_t *)buffer, lba);
+  return bufsize;
+}
+
+static int32_t onRead(uint32_t lba, uint32_t offset, void *buffer, uint32_t bufsize)
+{
+  SD.readRAW((uint8_t *)buffer, lba);
+  return bufsize;
 }

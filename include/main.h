@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
+#include <USB.h>
+#include <USBMSC.h>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -23,16 +25,23 @@
 #define REGION_EU868
 #define WIRELESS_TRACKER_V2
 
-// Pin definitions
+// 5-way button definitions
 #define PAD_UP_PIN 44
 #define PAD_DOWN_PIN 43
 #define PAD_LEFT_PIN 45
 #define PAD_RIGHT_PIN 46
 #define PAD_MIDDLE_PIN 4
+
+// SD card definitions
 #define SD_CS 5
 #define SD_MISO 11
 #define SD_MOSI 10
 #define SD_SCLK 9
+#define DISK_SECTOR_COUNT 240000 // 8KB is the smallest size that windows allow to mount
+#define DISK_SECTOR_SIZE 512
+#define DISC_SECTORS_PER_TABLE 1
+
+// GPS definitions
 #define GPS_ENABLE_PIN 3
 #define GPS_RX 33
 #define GPS_TX 34
@@ -96,6 +105,8 @@ SX1262 radio = new Module(RADIO_CS_PIN, RADIO_DIO1_PIN, RADIO_RST_PIN, RADIO_BUS
 LoRaAPRS aprs(&gps, &radio);
 GPSTracker tracker(&gps);
 BoardConfig boardConfig;
+USBMSC msc;
+
 vector<string> menu_items = {
     {"Start Tracking"},
     {"Save Waypoint"},
@@ -111,6 +122,7 @@ Timezone timezone_obj(CEST, CET);
 
 // Global variables
 bool sd_card_init = false;
+bool usb_mode = false;
 volatile int screen_id = 0;
 volatile int cursor_pos = 0;
 string message_str;
@@ -127,6 +139,11 @@ void IRAM_ATTR button_handler(int btn_id);
 string to_string_rounded(double value, int decimals);
 void display_text(int x, int y, const string &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 void display_wrapped_text(int x, int y, const string &text, int line_end, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
+
+// USB MSC methods
+bool init_usb_msc();
+static int32_t onWrite(uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize);
+static int32_t onRead(uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize);
 
 void run_tasks(uint16_t);
 void setup();

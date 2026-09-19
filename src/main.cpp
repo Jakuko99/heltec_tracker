@@ -303,15 +303,34 @@ void setup()
   Serial1.begin(115200, SERIAL_8N1, GPS_RX, GPS_TX);
   Serial.begin(115200);
 
-  // Setup display
-  init_display();
-
   // Setup buttons, interrupts will be attached at the end of setup
   pinMode(PAD_UP_PIN, INPUT_PULLUP);
   pinMode(PAD_DOWN_PIN, INPUT_PULLUP);
   pinMode(PAD_LEFT_PIN, INPUT_PULLUP);
   pinMode(PAD_RIGHT_PIN, INPUT_PULLUP);
   pinMode(PAD_MIDDLE_PIN, INPUT_PULLUP);
+
+  // enter FTP mode before SD card init
+  if (digitalRead(PAD_MIDDLE_PIN) == LOW) // FTP mode for accessing SD card
+  {
+    ftp_mode = true;
+
+    bool res = init_ftp();
+    init_display();
+
+    display_text(30, 30, "FTP mode", ST77XX_RED, 2);
+    if (!res)
+    {
+      display_text(30, 50, "Failed to start AP", ST77XX_RED);
+      return; // Skip the rest of the setup if FTP mode fails
+    }
+
+    display_text(30, 50, "IP: " + string(WiFi.softAPIP().toString().c_str()), ST77XX_GREEN);
+    return; // Skip the rest of the setup if FTP mode is active
+  }
+
+  // Setup display
+  init_display();
 
   // Setup SD card
   SPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
@@ -377,19 +396,6 @@ void setup()
     }
   }
 
-  if (digitalRead(PAD_MIDDLE_PIN) == LOW) // USB mode for accessing SD card
-  {
-    usb_mode = true;
-    display_text(30, 30, "USB mode", ST77XX_RED, 2);
-
-    /*if (init_usb_msc())
-    {
-      display_text(30, 50, "USB MSC initialized", ST77XX_GREEN);
-    }*/
-
-    return; // Skip the rest of the setup if USB mode is active
-  }
-
   if (boardConfig.position_reports_enabled) // Initialize APRS if position reports are enabled
   {
     aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
@@ -415,7 +421,7 @@ void setup()
 
 void loop()
 {
-  if (!usb_mode)
+  if (!ftp_mode)
   {
     if (millis() - prev_millis > CYCLE_TIME)
     {
@@ -426,34 +432,21 @@ void loop()
     render_screen();
     run_tasks(500); // Run GPS encoding and other tasks for 500 ms
   }
+  else
+  {
+    ftp.handleFTP(); // Handle FTP requests
+  }
 }
 
-// ----- USB MSC methods -----
-bool init_usb_msc()
+// ----- FTP methods -----
+bool init_ftp()
 {
-  msc.vendorID("REF32");
-  msc.productID("USB_MSC");
-  msc.productRevision("1.0");
-  msc.onRead(onRead);
-  msc.onWrite(onWrite);
-  msc.onStartStop([](uint8_t power_condition, bool start, bool load_eject)
-                  { return true; }); // Accept all start/stop commands
-  msc.mediaPresent(true);
+  if (!WiFi.softAP(WIFI_SSID, FTP_PASSWORD))
+  {
+    return false;
+  }
 
-  bool state = msc.begin(DISK_SECTOR_COUNT, DISK_SECTOR_SIZE);
-  USB.begin();
-
-  return state;
-}
-
-static int32_t onWrite(uint32_t lba, uint32_t offset, uint8_t *buffer, uint32_t bufsize)
-{
-  SD.writeRAW((uint8_t *)buffer, lba);
-  return bufsize;
-}
-
-static int32_t onRead(uint32_t lba, uint32_t offset, void *buffer, uint32_t bufsize)
-{
-  SD.readRAW((uint8_t *)buffer, lba);
-  return bufsize;
+  ftp.initSD();
+  ftp.beginFTP(FTP_USER, FTP_PASSWORD);
+  return true;
 }

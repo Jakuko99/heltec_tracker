@@ -16,7 +16,7 @@
 #include <Timezone.h>
 
 #include "gpx.h"
-#include "ESP32FastFTP.h"
+#include "ESP32FtpServer.h"
 
 #include "gps_tracker.h"
 #include "lora_aprs.h"

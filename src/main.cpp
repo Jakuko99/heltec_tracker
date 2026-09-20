@@ -39,7 +39,7 @@ void render_screen()
     display_text(0, 0, time_str, ST77XX_BLUE, 2);
     display_text(0, 19, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 2);
 
-    display_text(110, 19, "Sat: " + to_string(gps.satellites.value()), ST77XX_GREEN);
+    display_text(110, 19, "Sat: " + to_string(gps.satellites.value()) + (gps.satellites.value() < 10 ? " " : ""), ST77XX_GREEN);
     display_text(110, 29, "HP:" + to_string_rounded(gps.hdop.hdop(), 1), ST77XX_ORANGE);
 
     display_text(0, 39, to_string_rounded(gps.altitude.meters(), 1) + " m", ST77XX_CYAN, 2);
@@ -310,25 +310,6 @@ void setup()
   pinMode(PAD_RIGHT_PIN, INPUT_PULLUP);
   pinMode(PAD_MIDDLE_PIN, INPUT_PULLUP);
 
-  // enter FTP mode before SD card init
-  if (digitalRead(PAD_MIDDLE_PIN) == LOW) // FTP mode for accessing SD card
-  {
-    ftp_mode = true;
-
-    bool res = init_ftp();
-    init_display();
-
-    display_text(30, 30, "FTP mode", ST77XX_RED, 2);
-    if (!res)
-    {
-      display_text(30, 50, "Failed to start AP", ST77XX_RED);
-      return; // Skip the rest of the setup if FTP mode fails
-    }
-
-    display_text(30, 50, "IP: " + string(WiFi.softAPIP().toString().c_str()), ST77XX_GREEN);
-    return; // Skip the rest of the setup if FTP mode is active
-  }
-
   // Setup display
   init_display();
 
@@ -396,6 +377,24 @@ void setup()
     }
   }
 
+  // enter FTP mode
+  if (digitalRead(PAD_MIDDLE_PIN) == LOW) // FTP mode for accessing SD card
+  {
+    ftp_mode = true;
+
+    bool res = init_ftp();
+
+    display_text(30, 30, "FTP mode", ST77XX_RED, 2);
+    if (!res)
+    {
+      display_text(30, 50, "Failed to start AP", ST77XX_RED);
+      return; // Skip the rest of the setup if FTP mode fails
+    }
+
+    display_text(30, 50, "IP: " + string(WiFi.softAPIP().toString().c_str()), ST77XX_GREEN);
+    return; // Skip the rest of the setup if FTP mode is active
+  }
+
   if (boardConfig.position_reports_enabled) // Initialize APRS if position reports are enabled
   {
     aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
@@ -434,7 +433,8 @@ void loop()
   }
   else
   {
-    ftp.handleFTP(); // Handle FTP requests
+    ftp.handleFTP();                                // Handle FTP requests
+    display_text(0, 0, "FTP active", ST77XX_GREEN); // DEBUG text
   }
 }
 
@@ -445,8 +445,8 @@ bool init_ftp()
   {
     return false;
   }
-
-  ftp.initSD();
-  ftp.beginFTP(FTP_USER, FTP_PASSWORD);
+  WiFi.setSleep(false);
+  
+  ftp.begin(FTP_USER, FTP_PASSWORD);
   return true;
 }

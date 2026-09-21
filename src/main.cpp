@@ -20,7 +20,7 @@ void init_display()
 
 void render_screen()
 {
-  screen_id = message_str.empty() ? screen_id : 3; // If there's a message, show the message screen
+  screen_id = message_str.empty() ? screen_id : 4; // If there's a message, show the message screen
 
   switch (screen_id)
   {
@@ -51,11 +51,6 @@ void render_screen()
       disp.fillCircle(125, 6, 4, ST77XX_RED);
       display_text(133, 4, to_string(tracker.get_recorded_points()), ST77XX_WHITE);
     }
-
-    if (boardConfig.position_reports_enabled)
-    {
-      disp.fillCircle(112, 6, 4, ST77XX_ORANGE);
-    }
     break;
   }
 
@@ -77,7 +72,11 @@ void render_screen()
     }
     break;
 
-  case 3: // draw warning screen
+  case 3: // draw waypoint selection screen
+
+    break;
+
+  case 4: // draw warning screen
     if (!message_str.empty())
     {
       disp.drawRect(2, 2, DISP_WIDTH - 4, DISP_HEIGHT - 4, ST77XX_ORANGE);
@@ -145,8 +144,8 @@ void IRAM_ATTR button_handler(int btn_id)
         int_flag = SAVE_WAYPOINT; // Set flag to save waypoint
         exit_menu();
         break;
-      case SEND_POSITION:
-        int_flag = SEND_POSITION; // Set flag to send position
+      case SELECT_WAYPOINT:
+        int_flag = SELECT_WAYPOINT; // Set flag to select waypoint
         exit_menu();
         break;
       case EXIT:
@@ -244,17 +243,6 @@ void run_tasks(uint16_t interval_ms)
   {
     tracker.track_point();
   }
-  if (gps.location.isUpdated() && boardConfig.position_reports_enabled)
-  {
-    if (last_report_time == nullptr || tracker.time_between(*last_report_time, last_gps_time) >= boardConfig.position_report_interval)
-    {
-      if (!aprs.send_position_report())
-      {
-        message_str = "Failed to send position report.";
-      }
-      last_report_time.reset(new tmElements_t(last_gps_time));
-    }
-  }
 
   switch (int_flag)
   {
@@ -279,14 +267,8 @@ void run_tasks(uint16_t interval_ms)
     }
     int_flag = -1; // Reset flag
     break;
-  case SEND_POSITION:
-    if (gps.location.isValid() && boardConfig.position_reports_enabled)
-    {
-      if (aprs.send_position_report())
-      {
-        message_str = "Position report sent successfully.";
-      }
-    }
+  case SELECT_WAYPOINT:
+
     int_flag = -1; // Reset flag
     break;
   }
@@ -352,22 +334,9 @@ void setup()
           {
             boardConfig.callsign = line.substring(9).c_str();
           }
-          else if (line.startsWith("SYMBOL="))
-          {
-            boardConfig.symbol = line.substring(7).c_str();
-          }
-          else if (line.startsWith("STATUS="))
-          {
-            boardConfig.status = line.substring(7).c_str();
-          }
-          /*else if (line.startsWith("POSITION_REPORT_INTERVAL="))
-          {
-            boardConfig.position_report_interval = line.substring(24).toInt();
-          }*/
         }
 
         configFile.close();
-        boardConfig.position_reports_enabled = ((boardConfig.position_report_interval > 0) && (boardConfig.callsign != "NOCALL"));
         tracker.load_config(boardConfig.tracking_distance, boardConfig.tracking_interval, boardConfig.track_desc);
       }
       else
@@ -381,23 +350,17 @@ void setup()
   if (digitalRead(PAD_MIDDLE_PIN) == LOW) // FTP mode for accessing SD card
   {
     ftp_mode = true;
-
     bool res = init_ftp();
 
-    display_text(30, 30, "FTP mode", ST77XX_RED, 2);
+    display_text(30, 20, "FTP mode", ST77XX_RED, 2);
     if (!res)
     {
-      display_text(30, 50, "Failed to start AP", ST77XX_RED);
+      display_text(30, 40, "Failed to start AP", ST77XX_RED);
       return; // Skip the rest of the setup if FTP mode fails
     }
 
-    display_text(30, 50, "IP: " + string(WiFi.softAPIP().toString().c_str()), ST77XX_GREEN);
+    display_text(30, 40, "IP: " + string(WiFi.softAPIP().toString().c_str()), ST77XX_BLUE);
     return; // Skip the rest of the setup if FTP mode is active
-  }
-
-  if (boardConfig.position_reports_enabled) // Initialize APRS if position reports are enabled
-  {
-    aprs.init(boardConfig.callsign, boardConfig.symbol, boardConfig.status);
   }
 
   // Setup button interrupts
@@ -433,8 +396,8 @@ void loop()
   }
   else
   {
-    ftp.handleFTP();                                // Handle FTP requests
-    display_text(0, 0, "FTP active", ST77XX_GREEN); // DEBUG text
+    ftp.handleFTP(); // Handle FTP requests
+    display_text(30, 50, "Connected: " + to_string(WiFi.softAPgetStationNum()), ST77XX_BLUE);
   }
 }
 
@@ -446,7 +409,7 @@ bool init_ftp()
     return false;
   }
   WiFi.setSleep(false);
-  
+
   ftp.begin(FTP_USER, FTP_PASSWORD);
   return true;
 }

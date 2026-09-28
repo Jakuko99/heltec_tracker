@@ -7,6 +7,8 @@
 #include <string>
 #include <TinyGPSPlus.h>
 #include <TimeLib.h>
+#include <vector>
+#include <sstream>
 
 #include "rapidxml.hpp"
 #include "rapidxml_print.hpp"
@@ -20,6 +22,14 @@ struct RoutePoint
     float lon;
     float ele;
     tmElements_t time;
+};
+
+struct Waypoint
+{
+    string name;
+    float lat;
+    float lon;
+    float ele;
 };
 
 class GPSTracker
@@ -41,6 +51,7 @@ public:
     bool save_waypoint_csv(float lat, float lon, float ele);
     bool save_waypoint();
     bool save_waypoint(float lat, float lon, float ele);
+    vector<Waypoint> get_waypoints();
 
     int time_between(tmElements_t start, tmElements_t end);
     tmElements_t parse_time(string time_str);
@@ -56,10 +67,10 @@ private:
     bool tracking_active = false;
     string track_filename;
     bool sd_card_init = false;
-    float tracking_distance; // minimum distance in meters to log a new point
-    int tracking_interval;   // minimum time in seconds to log a new point
-    long int recorded_points;      // number of points recorded in the current track
-    string track_desc;       // description for the track
+    float tracking_distance;  // minimum distance in meters to log a new point
+    int tracking_interval;    // minimum time in seconds to log a new point
+    long int recorded_points; // number of points recorded in the current track
+    string track_desc;        // description for the track
     GPX gpx_parser;
     rapidxml::xml_document<> doc;
     File GpxFile;

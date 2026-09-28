@@ -68,6 +68,7 @@
 
 #define CYCLE_TIME 100 // ms
 #define COORD_PRECISION 5 // number of decimal places for coordinates
+#define NUM_MENU_ITEMS 4 // update this based on the items in the menu
 
 using namespace std;
 
@@ -84,7 +85,7 @@ enum MenuItems
 {
     START_TRACKING,
     SAVE_WAYPOINT,
-    SELECT_WAYPOINT,
+    SHOW_WAYPOINTS,
     EXIT,
 };
 
@@ -106,7 +107,7 @@ FtpServer ftp;
 vector<string> menu_items = {
     {"Start Tracking"},
     {"Save Waypoint"},
-    {"Select Waypoint"},
+    {"Show Waypoints"},
     {"Exit"},
 };
 int int_flag = -1; // flag to indicate which action to take after menu selection
@@ -124,8 +125,8 @@ volatile int cursor_pos = 0;
 string message_str;
 unsigned long prev_millis = 0;
 tmElements_t last_gps_time;
-std::unique_ptr<tmElements_t> last_report_time;
 string time_str;
+vector<Waypoint> stored_waypoints;
 
 // UI methods
 void init_display();

@@ -210,9 +210,9 @@ bool GPSTracker::save_waypoint_csv(float lat, float lon, float ele)
             // write a waypoint to the file
             waypoint_file.print(format_time(get_current_time()).c_str());
             waypoint_file.print(",");
-            waypoint_file.print(lat, 6);
+            waypoint_file.print(lat, 5);
             waypoint_file.print(",");
-            waypoint_file.print(lon, 6);
+            waypoint_file.print(lon, 5);
             waypoint_file.print(",");
             waypoint_file.println(ele, 1);
             waypoint_file.close();
@@ -283,6 +283,33 @@ bool GPSTracker::save_waypoint(float lat, float lon, float ele)
         }
     }
     return false;
+}
+
+vector<Waypoint> GPSTracker::get_waypoints()
+{
+    vector<Waypoint> wpt_vector;
+    if (sd_card_init)
+    {
+        File waypoint_file = SD.open("/waypoints.csv", "r");
+        if (waypoint_file)
+        {
+            while (waypoint_file.available())
+            {
+                String line = waypoint_file.readStringUntil('\n');
+                line.trim();
+                std::stringstream test(line.c_str());
+                std::string segment;
+                std::vector<std::string> seglist;
+
+                while (std::getline(test, segment, ','))
+                {
+                    seglist.push_back(segment);
+                }
+                wpt_vector.push_back(Waypoint({seglist.at(0), stof(seglist.at(1)), stof(seglist.at(2)), stof(seglist.at(3))}));
+            }
+        }
+    }
+    return wpt_vector;
 }
 
 int GPSTracker::time_between(tmElements_t start, tmElements_t end)

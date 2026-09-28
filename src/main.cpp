@@ -9,7 +9,6 @@ void init_display()
   disp.initR(INITR_MINI160x80_PLUGIN);
   disp.setRotation(1); // Landscape
   disp.fillScreen(ST77XX_BLACK);
-  disp.setTextColor(ST77XX_BLUE, ST77XX_BLACK);
 
   delay(50); // Wait for screen to clear
 
@@ -59,7 +58,7 @@ void render_screen()
     break;
 
   case 2: // draw settings screen
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < NUM_MENU_ITEMS; i++)
     {
       if (i == cursor_pos)
       {
@@ -72,8 +71,20 @@ void render_screen()
     }
     break;
 
-  case 3: // draw waypoint selection screen
-
+  case 3:                                                                 // draw waypoint selection screen
+    stored_waypoints.push_back(Waypoint({"Back to menu", 0.0, 0.0, -1})); // add return as "dummy" waypoint
+    for (int i = 0; i < stored_waypoints.size(); i++)
+    {
+      if (i == cursor_pos)
+      {
+        display_text(3, (11 * i) + 3, "> " + stored_waypoints.at(i).name, ST77XX_BLUE);
+      }
+      else
+      {
+        display_text(3, (11 * i) + 3, "  " + stored_waypoints.at(i).name, ST77XX_BLUE);
+      }
+    }
+    stored_waypoints.pop_back(); // remove extra menu option
     break;
 
   case 4: // draw warning screen
@@ -111,15 +122,15 @@ void IRAM_ATTR button_handler(int btn_id)
   {
   case UP:
 
-    if (screen_id == 2)
+    if ((screen_id == 2) || (screen_id == 3))
     {
-      cursor_pos = (cursor_pos - 1 + 4) % 4; // Wrap around the menu items
+      cursor_pos = (cursor_pos - 1 + NUM_MENU_ITEMS) % NUM_MENU_ITEMS; // Wrap around the menu items
     }
     break;
   case DOWN:
-    if (screen_id == 2)
+    if ((screen_id == 2) || (screen_id == 3))
     {
-      cursor_pos = (cursor_pos + 1) % 4; // Wrap around the menu items
+      cursor_pos = (cursor_pos + 1) % NUM_MENU_ITEMS; // Wrap around the menu items
     }
     break;
   case MIDDLE:
@@ -132,25 +143,38 @@ void IRAM_ATTR button_handler(int btn_id)
       screen_id = 2;
       disp.fillScreen(ST77XX_BLACK);
     }
+    else if (screen_id == 3)
+    {
+      screen_id = cursor_pos < stored_waypoints.size() ? 0 : 2;
+      disp.fillScreen(ST77XX_BLACK);
+      cursor_pos = 0;
+    }
     else if (screen_id == 2)
     {
       switch (cursor_pos)
       {
-      case START_TRACKING:
-        int_flag = START_TRACKING; // Set flag to start/stop tracking
-        exit_menu();
-        break;
-      case SAVE_WAYPOINT:
-        int_flag = SAVE_WAYPOINT; // Set flag to save waypoint
-        exit_menu();
-        break;
-      case SELECT_WAYPOINT:
-        int_flag = SELECT_WAYPOINT; // Set flag to select waypoint
-        exit_menu();
-        break;
+        /*case START_TRACKING:
+          int_flag = START_TRACKING; // Set flag to start/stop tracking
+          exit_menu();
+          break;
+
+        case SAVE_WAYPOINT:
+          int_flag = SAVE_WAYPOINT; // Set flag to save waypoint
+          exit_menu();
+          break;
+
+        case SHOW_WAYPOINTS:
+          int_flag = SHOW_WAYPOINTS; // Set flag to select waypoint
+          exit_menu();
+          break;*/
+
       case EXIT:
         exit_menu();
         break;
+
+      default:
+        int_flag = cursor_pos;
+        exit_menu();
       }
     }
     break;
@@ -250,15 +274,16 @@ void run_tasks(uint16_t interval_ms)
     if (tracker.is_tracking_active())
     {
       tracker.end_tracking();
-      menu_items[0] = "Start Tracking"; // Change menu item back to "Start Tracking"
+      menu_items[START_TRACKING] = "Start Tracking"; // Change menu item back to "Start Tracking"
     }
     else
     {
       tracker.begin_tracking();
-      menu_items[0] = "Stop Tracking"; // Change menu item to "Stop Tracking"
+      menu_items[START_TRACKING] = "Stop Tracking"; // Change menu item to "Stop Tracking"
     }
     int_flag = -1; // Reset flag
     break;
+
   case SAVE_WAYPOINT:
     if (gps.location.isValid())
     {
@@ -267,8 +292,17 @@ void run_tasks(uint16_t interval_ms)
     }
     int_flag = -1; // Reset flag
     break;
-  case SELECT_WAYPOINT:
 
+  case SHOW_WAYPOINTS:
+    stored_waypoints = tracker.get_waypoints();
+    if (stored_waypoints.size() > 0)
+    {
+      screen_id = 3; // show waypoint selection screen
+    }
+    else
+    {
+      message_str = "No waypoints loaded!";
+    }
     int_flag = -1; // Reset flag
     break;
   }

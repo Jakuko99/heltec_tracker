@@ -122,6 +122,7 @@ bool sd_card_init = false;
 bool ftp_mode = false;
 volatile int screen_id = 0;
 volatile int cursor_pos = 0;
+volatile int num_items = NUM_MENU_ITEMS;
 string message_str;
 unsigned long prev_millis = 0;
 tmElements_t last_gps_time;

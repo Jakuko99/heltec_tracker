@@ -118,19 +118,20 @@ void exit_menu()
 
 void IRAM_ATTR button_handler(int btn_id)
 {
+  num_items = screen_id == 2 ? NUM_MENU_ITEMS : stored_waypoints.size();
   switch (btn_id)
   {
   case UP:
 
     if ((screen_id == 2) || (screen_id == 3))
     {
-      cursor_pos = (cursor_pos - 1 + NUM_MENU_ITEMS) % NUM_MENU_ITEMS; // Wrap around the menu items
+      cursor_pos = (cursor_pos - 1 + num_items) % num_items; // Wrap around the menu items
     }
     break;
   case DOWN:
     if ((screen_id == 2) || (screen_id == 3))
     {
-      cursor_pos = (cursor_pos + 1) % NUM_MENU_ITEMS; // Wrap around the menu items
+      cursor_pos = (cursor_pos + 1) % num_items; // Wrap around the menu items
     }
     break;
   case MIDDLE:

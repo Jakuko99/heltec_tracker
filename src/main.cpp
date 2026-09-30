@@ -19,11 +19,11 @@ void init_display()
 
 void render_screen()
 {
-  screen_id = message_str.empty() ? screen_id : 4; // If there's a message, show the message screen
+  screen_id = message_str.empty() ? screen_id : Screens::WARNING_SCREEN; // If there's a message, show the message screen
 
   switch (screen_id)
   {
-  case 0:
+  case Screens::MAIN_SCREEN:
   { // draw main screen
     // convert GPS time to local time
     last_gps_time = tracker.get_current_time(); // timezone is not handled, so this will be UTC time
@@ -50,14 +50,23 @@ void render_screen()
       disp.fillCircle(125, 6, 4, ST77XX_RED);
       display_text(133, 4, to_string(tracker.get_recorded_points()), ST77XX_WHITE);
     }
+
+    draw_page_indicators(Screens::MAIN_SCREEN);
     break;
   }
 
-  case 1: // draw navigation screen
-
+  case Screens::NAVIGATION_SCREEN: // draw navigation screen
+    draw_page_indicators(Screens::NAVIGATION_SCREEN);
     break;
 
-  case 2: // draw settings screen
+  case Screens::EXTRA_SCREEN: // extra base screen
+    display_text(0, 0, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 3);  
+    display_text(0, 29, to_string_rounded(gps.altitude.meters(), 1) + " m", ST7735_CYAN, 2);
+
+    draw_page_indicators(Screens::EXTRA_SCREEN);
+    break;
+
+  case Screens::SETTINGS_SCREEN: // draw settings screen
     for (int i = 0; i < NUM_MENU_ITEMS; i++)
     {
       if (i == cursor_pos)
@@ -71,7 +80,7 @@ void render_screen()
     }
     break;
 
-  case 3:                                                                 // draw waypoint selection screen
+  case Screens::WAYPOINT_SCREEN:                                          // draw waypoint selection screen
     stored_waypoints.push_back(Waypoint({"Back to menu", 0.0, 0.0, -1})); // add return as "dummy" waypoint
     for (int i = 0; i < stored_waypoints.size(); i++)
     {
@@ -87,7 +96,7 @@ void render_screen()
     stored_waypoints.pop_back(); // remove extra menu option
     break;
 
-  case 4: // draw warning screen
+  case Screens::WARNING_SCREEN: // draw warning screen
     if (!message_str.empty())
     {
       disp.drawRect(2, 2, DISP_WIDTH - 4, DISP_HEIGHT - 4, ST77XX_ORANGE);
@@ -99,7 +108,7 @@ void render_screen()
     }
     else
     {
-      screen_id = 0; // return to main screen if no message to show
+      screen_id = Screens::MAIN_SCREEN; // return to main screen if no message to show
       disp.fillScreen(ST77XX_BLACK);
     }
     break;
@@ -111,65 +120,52 @@ void render_screen()
 
 void exit_menu()
 {
-  screen_id = 0;
+  screen_id = Screens::MAIN_SCREEN;
   cursor_pos = 0;
   disp.fillScreen(ST77XX_BLACK);
 }
 
 void IRAM_ATTR button_handler(int btn_id)
 {
-  num_items = screen_id == 2 ? NUM_MENU_ITEMS : stored_waypoints.size();
+  num_items = screen_id == Screens::SETTINGS_SCREEN ? NUM_MENU_ITEMS : stored_waypoints.size();
   switch (btn_id)
   {
   case UP:
 
-    if ((screen_id == 2) || (screen_id == 3))
+    if ((screen_id == Screens::SETTINGS_SCREEN) || (screen_id == Screens::WAYPOINT_SCREEN))
     {
       cursor_pos = (cursor_pos - 1 + num_items) % num_items; // Wrap around the menu items
     }
     break;
+
   case DOWN:
-    if ((screen_id == 2) || (screen_id == 3))
+    if ((screen_id == Screens::SETTINGS_SCREEN) || (screen_id == Screens::WAYPOINT_SCREEN))
     {
       cursor_pos = (cursor_pos + 1) % num_items; // Wrap around the menu items
     }
     break;
+
   case MIDDLE:
     if (!message_str.empty())
     {
       message_str = ""; // Dismiss message
     }
-    else if (screen_id == 0)
+    else if (screen_id == Screens::MAIN_SCREEN)
     {
-      screen_id = 2;
+      screen_id = Screens::SETTINGS_SCREEN;
       disp.fillScreen(ST77XX_BLACK);
     }
-    else if (screen_id == 3)
+    else if (screen_id == WAYPOINT_SCREEN)
     {
-      screen_id = cursor_pos < stored_waypoints.size() ? 0 : 2;
+      screen_id = cursor_pos < stored_waypoints.size() ? Screens::MAIN_SCREEN : Screens::SETTINGS_SCREEN;
       disp.fillScreen(ST77XX_BLACK);
       cursor_pos = 0;
     }
-    else if (screen_id == 2)
+    else if (screen_id == Screens::SETTINGS_SCREEN)
     {
       switch (cursor_pos)
       {
-        /*case START_TRACKING:
-          int_flag = START_TRACKING; // Set flag to start/stop tracking
-          exit_menu();
-          break;
-
-        case SAVE_WAYPOINT:
-          int_flag = SAVE_WAYPOINT; // Set flag to save waypoint
-          exit_menu();
-          break;
-
-        case SHOW_WAYPOINTS:
-          int_flag = SHOW_WAYPOINTS; // Set flag to select waypoint
-          exit_menu();
-          break;*/
-
-      case EXIT:
+      case EXIT: // other options use the same code, so they can use default block
         exit_menu();
         break;
 
@@ -178,6 +174,16 @@ void IRAM_ATTR button_handler(int btn_id)
         exit_menu();
       }
     }
+    break;
+
+  case LEFT:
+    screen_id = (screen_id - 1 + 3) % 3;
+    disp.fillScreen(ST77XX_BLACK);
+    break;
+
+  case RIGHT:
+    screen_id = (screen_id + 1) % 3;
+    disp.fillScreen(ST77XX_BLACK);
     break;
   }
 }
@@ -189,7 +195,7 @@ string to_string_rounded(double value, int decimals)
   ostringstream out;
   out.precision(decimals);
   out << fixed << value;
-  ;
+
   return move(out).str();
 }
 
@@ -254,6 +260,21 @@ void display_wrapped_text(int x, int y, const string &text, int line_end, uint16
   disp.setTextWrap(true); // Re-enable text wrapping
 }
 
+void draw_page_indicators(int current_page, int total_pages)
+{
+  for (int i = 0; i < total_pages; i++)
+  {
+    if (i == current_page)
+    {
+      disp.fillCircle(((DISP_WIDTH / 2) - 10) + (i * 10), 74, 3, ST7735_CYAN);
+    }
+    else
+    {
+      disp.drawCircle(((DISP_WIDTH / 2) - 10) + (i * 10), 74, 3, ST7735_BLUE);
+    }
+  }
+}
+
 void run_tasks(uint16_t interval_ms)
 {
   unsigned long start = millis();
@@ -298,7 +319,7 @@ void run_tasks(uint16_t interval_ms)
     stored_waypoints = tracker.get_waypoints();
     if (stored_waypoints.size() > 0)
     {
-      screen_id = 3; // show waypoint selection screen
+      screen_id = Screens::WAYPOINT_SCREEN; // show waypoint selection screen
     }
     else
     {
@@ -433,7 +454,7 @@ void loop()
   {
     ftp.handleFTP(); // Handle FTP requests
     display_text(30, 50, "Connected: " + to_string(WiFi.softAPgetStationNum()), ST77XX_BLUE);
-  }
+  }  
 }
 
 // ----- FTP methods -----

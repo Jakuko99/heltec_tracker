@@ -68,11 +68,11 @@
 
 #define CYCLE_TIME 100    // ms
 #define COORD_PRECISION 5 // number of decimal places for coordinates
-#define NUM_MENU_ITEMS 4  // update this based on the items in the menu
+#define SCREEN_COUNT 3
 
 using namespace std;
 
-enum PadDirection
+enum class PadDirection
 {
     UP,
     DOWN,
@@ -87,6 +87,7 @@ enum MenuItems
     SAVE_WAYPOINT,
     SHOW_WAYPOINTS,
     EXIT,
+    MENU_ITEMS_COUNT,
 };
 
 enum Screens
@@ -132,7 +133,7 @@ bool sd_card_init = false;
 bool ftp_mode = false;
 volatile int screen_id = Screens::MAIN_SCREEN;
 volatile int cursor_pos = 0;
-volatile int num_items = NUM_MENU_ITEMS;
+volatile int num_items = MENU_ITEMS_COUNT;
 string message_str;
 unsigned long prev_millis = 0;
 tmElements_t last_gps_time;
@@ -143,11 +144,11 @@ vector<Waypoint> stored_waypoints;
 void init_display();
 void render_screen();
 void exit_menu();
-void IRAM_ATTR button_handler(int btn_id);
+void IRAM_ATTR button_handler(PadDirection btn_id);
 string to_string_rounded(double value, int decimals);
 void display_text(int x, int y, const string &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 void display_wrapped_text(int x, int y, const string &text, int line_end, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
-void draw_page_indicators(int current_page, int total_pages = 3);
+void draw_page_indicators(int current_page, int total_pages = SCREEN_COUNT);
 
 // FTP methods
 bool init_ftp();

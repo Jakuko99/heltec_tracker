@@ -60,14 +60,14 @@ void render_screen()
     break;
 
   case Screens::EXTRA_SCREEN: // extra base screen
-    display_text(0, 0, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 3);  
+    display_text(0, 0, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 3);
     display_text(0, 29, to_string_rounded(gps.altitude.meters(), 1) + " m", ST7735_CYAN, 2);
 
     draw_page_indicators(Screens::EXTRA_SCREEN);
     break;
 
   case Screens::SETTINGS_SCREEN: // draw settings screen
-    for (int i = 0; i < NUM_MENU_ITEMS; i++)
+    for (int i = 0; i < MENU_ITEMS_COUNT; i++)
     {
       if (i == cursor_pos)
       {
@@ -125,27 +125,27 @@ void exit_menu()
   disp.fillScreen(ST77XX_BLACK);
 }
 
-void IRAM_ATTR button_handler(int btn_id)
+void IRAM_ATTR button_handler(PadDirection btn_id)
 {
-  num_items = screen_id == Screens::SETTINGS_SCREEN ? NUM_MENU_ITEMS : stored_waypoints.size();
+  num_items = screen_id == Screens::SETTINGS_SCREEN ? MENU_ITEMS_COUNT : stored_waypoints.size();
+  
   switch (btn_id)
   {
-  case UP:
-
+  case PadDirection::UP:
     if ((screen_id == Screens::SETTINGS_SCREEN) || (screen_id == Screens::WAYPOINT_SCREEN))
     {
       cursor_pos = (cursor_pos - 1 + num_items) % num_items; // Wrap around the menu items
     }
     break;
 
-  case DOWN:
+  case PadDirection::DOWN:
     if ((screen_id == Screens::SETTINGS_SCREEN) || (screen_id == Screens::WAYPOINT_SCREEN))
     {
       cursor_pos = (cursor_pos + 1) % num_items; // Wrap around the menu items
     }
     break;
 
-  case MIDDLE:
+  case PadDirection::MIDDLE:
     if (!message_str.empty())
     {
       message_str = ""; // Dismiss message
@@ -176,13 +176,13 @@ void IRAM_ATTR button_handler(int btn_id)
     }
     break;
 
-  case LEFT:
-    screen_id = (screen_id - 1 + 3) % 3;
+  case PadDirection::LEFT:
+    screen_id = (screen_id - 1 + SCREEN_COUNT) % SCREEN_COUNT;
     disp.fillScreen(ST77XX_BLACK);
     break;
 
-  case RIGHT:
-    screen_id = (screen_id + 1) % 3;
+  case PadDirection::RIGHT:
+    screen_id = (screen_id + 1) % SCREEN_COUNT;
     disp.fillScreen(ST77XX_BLACK);
     break;
   }
@@ -421,15 +421,15 @@ void setup()
 
   // Setup button interrupts
   attachInterrupt(digitalPinToInterrupt(PAD_UP_PIN), []()
-                  { button_handler(UP); }, FALLING);
+                  { button_handler(PadDirection::UP); }, FALLING);
   attachInterrupt(digitalPinToInterrupt(PAD_DOWN_PIN), []()
-                  { button_handler(DOWN); }, FALLING);
+                  { button_handler(PadDirection::DOWN); }, FALLING);
   attachInterrupt(digitalPinToInterrupt(PAD_LEFT_PIN), []()
-                  { button_handler(LEFT); }, FALLING);
+                  { button_handler(PadDirection::LEFT); }, FALLING);
   attachInterrupt(digitalPinToInterrupt(PAD_RIGHT_PIN), []()
-                  { button_handler(RIGHT); }, FALLING);
+                  { button_handler(PadDirection::RIGHT); }, FALLING);
   attachInterrupt(digitalPinToInterrupt(PAD_MIDDLE_PIN), []()
-                  { button_handler(MIDDLE); }, FALLING);
+                  { button_handler(PadDirection::MIDDLE); }, FALLING);
 
   display_text(30, 20, "Welcome,", ST77XX_YELLOW, 2);
   display_text(30, 40, (boardConfig.callsign != "NOCALL") ? boardConfig.callsign : "User", ST77XX_YELLOW, 2);
@@ -454,7 +454,7 @@ void loop()
   {
     ftp.handleFTP(); // Handle FTP requests
     display_text(30, 50, "Connected: " + to_string(WiFi.softAPgetStationNum()), ST77XX_BLUE);
-  }  
+  }
 }
 
 // ----- FTP methods -----

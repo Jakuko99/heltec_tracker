@@ -27,8 +27,7 @@ void render_screen()
   { // draw main screen
     // convert GPS time to local time
     last_gps_time = tracker.get_current_time(); // timezone is not handled, so this will be UTC time
-    time_t utc_time = makeTime(last_gps_time);
-    time_t local_time = timezone_obj.toLocal(utc_time);
+    time_t local_time = timezone_obj.toLocal(makeTime(last_gps_time));
 
     time_str =
         string(hour(local_time) < 10 ? "0" : "") + to_string(hour(local_time)) + ":" +
@@ -128,7 +127,7 @@ void exit_menu()
 void IRAM_ATTR button_handler(PadDirection btn_id)
 {
   num_items = screen_id == Screens::SETTINGS_SCREEN ? MENU_ITEMS_COUNT : stored_waypoints.size();
-  
+
   switch (btn_id)
   {
   case PadDirection::UP:
@@ -398,6 +397,17 @@ void setup()
       else
       {
         message_str = "Failed to open config file!";
+      }
+    }
+
+    if (SD.exists("/.tracking_active")) // tracking was interrupted by board reset, restore it here
+    {
+      File tracking_file = SD.open("/.tracking_active", "r");
+      if (tracking_file)
+      {
+        tracker.restore_tracking(tracking_file.readStringUntil(EOF).c_str());
+        message_str = "Tracking was restored from file: " + tracker.get_filename();
+        menu_items[START_TRACKING] = "Stop Tracking"; // update menu to reflect this change
       }
     }
   }

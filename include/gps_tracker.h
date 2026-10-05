@@ -40,6 +40,7 @@ public:
     void load_config(float track_distance, int track_interval, string track_desc);
 
     bool begin_tracking();
+    bool restore_tracking(string filename);
     bool track_point();
     bool track_point(float lat, float lon, float ele);
     bool new_track_segment();
@@ -58,9 +59,11 @@ public:
     string format_time(tmElements_t dt);
     string format_time_filename(tmElements_t dt);
     tmElements_t get_current_time();
+
     void set_sd_card_init(bool _init) { sd_card_init = _init; }
     bool is_tracking_active() const { return tracking_active; }
     long int get_recorded_points() const { return recorded_points; }
+    string get_filename() const { return track_filename; }
 
 private:
     std::unique_ptr<RoutePoint> last_point = nullptr;
@@ -73,7 +76,7 @@ private:
     string track_desc;        // description for the track
     GPX gpx_parser;
     rapidxml::xml_document<> doc;
-    File GpxFile;
+    File gpx_file;
     TinyGPSPlus *GPS;
 };
 

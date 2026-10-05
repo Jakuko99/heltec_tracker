@@ -4,7 +4,8 @@ GPSTracker::GPSTracker(TinyGPSPlus *gps)
 {
     this->GPS = gps;
     gpx_parser.setMetaDesc("FW v0.1");
-    gpx_parser.setDesc(track_desc);
+    gpx_parser.setDesc("");
+    recorded_points = 0;
 }
 
 GPSTracker::GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interval, string track_desc)
@@ -12,6 +13,8 @@ GPSTracker::GPSTracker(TinyGPSPlus *gps, float track_distance, int track_interva
     this->GPS = gps;
     gpx_parser.setMetaDesc("FW v0.1");
     gpx_parser.setDesc(track_desc);
+    recorded_points = 0;
+    
     this->tracking_distance = track_distance;
     this->tracking_interval = track_interval;
     this->track_desc = track_desc;
@@ -34,22 +37,46 @@ bool GPSTracker::begin_tracking()
     {
         // create track file
         track_filename = "/" + gpx_parser.getName() + ".gpx";
-        GpxFile = SD.open(track_filename.c_str(), "w");
-        if (GpxFile)
+        gpx_file = SD.open(track_filename.c_str(), "w");
+        if (gpx_file)
         {
             // write header to the file
-            GpxFile.print(gpx_parser.getOpen().c_str());
-            GpxFile.print(gpx_parser.getMetaData().c_str());
-            GpxFile.print(gpx_parser.getTrakOpen().c_str());
-            GpxFile.print(gpx_parser.getInfo().c_str());
-            GpxFile.print(gpx_parser.getTrakSegOpen().c_str());
-            GpxFile.close();
+            gpx_file.print(gpx_parser.getOpen().c_str());
+            gpx_file.print(gpx_parser.getMetaData().c_str());
+            gpx_file.print(gpx_parser.getTrakOpen().c_str());
+            gpx_file.print(gpx_parser.getInfo().c_str());
+            gpx_file.print(gpx_parser.getTrakSegOpen().c_str());
+            gpx_file.close();
             tracking_active = true;
             recorded_points = 0; // reset recorded points counter
+
+            // create temp file, which holds filename of current track to restore tracking if board resets
+            gpx_file = SD.open("/.tracking_active", "w");
+            if (gpx_file)
+            {
+                gpx_file.print(gpx_parser.getName().c_str());
+                gpx_file.close();
+            }
+
             return true;
         }
     }
 
+    return false;
+}
+
+bool GPSTracker::restore_tracking(string filename)
+{
+    // set metadata for GPX file
+    gpx_parser.setName(filename);
+    if (sd_card_init)
+    {
+        // remember previous track filename
+        track_filename = "/" + gpx_parser.getName() + ".gpx";
+        recorded_points = 0;
+        tracking_active = true;
+        return true;
+    }
     return false;
 }
 
@@ -69,8 +96,8 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
 {
     if (sd_card_init)
     {
-        GpxFile = SD.open(track_filename.c_str(), "a");
-        if (GpxFile && tracking_active)
+        gpx_file = SD.open(track_filename.c_str(), "a");
+        if (gpx_file && tracking_active)
         {
             if (last_point != nullptr)
             {
@@ -78,15 +105,15 @@ bool GPSTracker::track_point(float lat, float lon, float ele)
                 if (distance < tracking_distance && (time_between(last_point->time, get_current_time()) < tracking_interval))
                 {
                     // skip point if it's too close to the last one
-                    GpxFile.close();
+                    gpx_file.close();
                     return true; // successfully "tracked" (skipped) the point, so return true
                 }
             }
 
             last_point.reset(new RoutePoint({lat, lon, ele, get_current_time()})); // store last point for distance/time checks
             // write a track point to the file
-            GpxFile.print(gpx_parser.getPt(GPX_TRKPT, last_point->lat, last_point->lon, last_point->ele, format_time(last_point->time), GPS->satellites.value()).c_str());
-            GpxFile.close();
+            gpx_file.print(gpx_parser.getPt(GPX_TRKPT, last_point->lat, last_point->lon, last_point->ele, format_time(last_point->time), GPS->satellites.value()).c_str());
+            gpx_file.close();
             recorded_points++; // increment recorded points counter
             return true;
         }
@@ -99,13 +126,13 @@ bool GPSTracker::new_track_segment()
 {
     if (sd_card_init && tracking_active)
     {
-        GpxFile = SD.open(track_filename.c_str(), "a");
-        if (GpxFile)
+        gpx_file = SD.open(track_filename.c_str(), "a");
+        if (gpx_file)
         {
             // write footer to the file and close it
-            GpxFile.print(gpx_parser.getTrakSegClose().c_str());
-            GpxFile.print(gpx_parser.getTrakSegOpen().c_str());
-            GpxFile.close();
+            gpx_file.print(gpx_parser.getTrakSegClose().c_str());
+            gpx_file.print(gpx_parser.getTrakSegOpen().c_str());
+            gpx_file.close();
             return true;
         }
     }
@@ -117,24 +144,24 @@ bool GPSTracker::pause_tracking()
 {
     if (sd_card_init && tracking_active)
     {
-        GpxFile = SD.open(track_filename.c_str(), "a");
-        if (GpxFile)
+        gpx_file = SD.open(track_filename.c_str(), "a");
+        if (gpx_file)
         {
             // write footer to the file and close it
-            GpxFile.print(gpx_parser.getTrakSegClose().c_str());
-            GpxFile.close();
+            gpx_file.print(gpx_parser.getTrakSegClose().c_str());
+            gpx_file.close();
             tracking_active = false;
             return true;
         }
     }
     else if (sd_card_init && !tracking_active && !track_filename.empty())
     {
-        GpxFile = SD.open(track_filename.c_str(), "a");
-        if (GpxFile)
+        gpx_file = SD.open(track_filename.c_str(), "a");
+        if (gpx_file)
         {
             // write segment header to the file and close it
-            GpxFile.print(gpx_parser.getTrakSegOpen().c_str());
-            GpxFile.close();
+            gpx_file.print(gpx_parser.getTrakSegOpen().c_str());
+            gpx_file.close();
             tracking_active = true;
             return true;
         }
@@ -146,14 +173,19 @@ bool GPSTracker::end_tracking()
 {
     if (sd_card_init)
     {
-        GpxFile = SD.open(track_filename.c_str(), "a");
-        if (GpxFile)
+        gpx_file = SD.open(track_filename.c_str(), "a");
+        if (gpx_file)
         {
             // write footer to the file and close it
-            GpxFile.print(gpx_parser.getTrakSegClose().c_str());
-            GpxFile.print(gpx_parser.getTrakClose().c_str());
-            GpxFile.print(gpx_parser.getClose().c_str());
-            GpxFile.close();
+            gpx_file.print(gpx_parser.getTrakSegClose().c_str());
+            gpx_file.print(gpx_parser.getTrakClose().c_str());
+            gpx_file.print(gpx_parser.getClose().c_str());
+            gpx_file.close();
+
+            if (SD.exists("/.tracking_active"))
+            {
+                SD.remove("/.tracking_active"); // remove temp file to indicate that the track is finished
+            }
 
             last_point.reset(); // clean up last point memory
             tracking_active = false;

@@ -146,7 +146,7 @@ void render_screen();
 void exit_menu();
 void IRAM_ATTR button_handler(PadDirection btn_id);
 string to_string_rounded(double value, int decimals);
-void display_text(int x, int y, const string &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
+uint8_t display_text(int x, int y, const string &text, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 void display_wrapped_text(int x, int y, const string &text, int line_end, uint16_t text_color = ST77XX_BLUE, int text_size = 1, uint16_t bg_color = ST77XX_BLACK);
 void draw_page_indicators(int current_page, int total_pages = SCREEN_COUNT);
 

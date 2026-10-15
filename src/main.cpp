@@ -21,19 +21,17 @@ void render_screen()
 {
   screen_id = message_str.empty() ? screen_id : Screens::WARNING_SCREEN; // If there's a message, show the message screen
 
+  last_gps_time = tracker.get_current_time();                        // timezone is not handled, so this will be UTC time
+  time_t local_time = timezone_obj.toLocal(makeTime(last_gps_time)); // convert GPS time to local time
+  time_str =                                                         // create time string in format HH:MM:SS
+      string(hour(local_time) < 10 ? "0" : "") + to_string(hour(local_time)) + ":" +
+      string(minute(local_time) < 10 ? "0" : "") + to_string(minute(local_time)) + ":" +
+      string(second(local_time) < 10 ? "0" : "") + to_string(second(local_time));
+
   switch (screen_id)
   {
   case Screens::MAIN_SCREEN:
   { // draw main screen
-    // convert GPS time to local time
-    last_gps_time = tracker.get_current_time(); // timezone is not handled, so this will be UTC time
-    time_t local_time = timezone_obj.toLocal(makeTime(last_gps_time));
-
-    time_str =
-        string(hour(local_time) < 10 ? "0" : "") + to_string(hour(local_time)) + ":" +
-        string(minute(local_time) < 10 ? "0" : "") + to_string(minute(local_time)) + ":" +
-        string(second(local_time) < 10 ? "0" : "") + to_string(second(local_time));
-
     display_text(0, 0, time_str, ST77XX_BLUE, 2);
     display_text(0, 19, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 2);
 
@@ -58,12 +56,23 @@ void render_screen()
     draw_page_indicators(Screens::NAVIGATION_SCREEN);
     break;
 
-  case Screens::EXTRA_SCREEN: // extra base screen
-    display_text(0, 0, to_string_rounded(gps.speed.kmph(), 1) + " km/h", ST77XX_RED, 3);
-    display_text(0, 29, to_string_rounded(gps.altitude.meters(), 1) + " m", ST7735_CYAN, 2);
+  case Screens::EXTRA_SCREEN:
+  { // extra base screen
+    uint8_t speed_width = display_text(2, 2, to_string_rounded(gps.speed.kmph(), 1), ST77XX_RED, 4);
+    display_text(speed_width + 4, 15, "km/h", ST77XX_RED, 2);
+    display_text(2, 36, to_string_rounded(gps.altitude.meters(), 1) + " m", ST7735_CYAN, 2);
+
+    display_text(2, 54, time_str, ST77XX_BLUE, 2);
+
+    if (tracker.is_tracking_active())
+    {
+      disp.fillCircle(125, 6, 4, ST77XX_RED);
+      display_text(133, 4, to_string(tracker.get_recorded_points()), ST77XX_WHITE);
+    }
 
     draw_page_indicators(Screens::EXTRA_SCREEN);
     break;
+  }
 
   case Screens::SETTINGS_SCREEN: // draw settings screen
     for (int i = 0; i < MENU_ITEMS_COUNT; i++)
@@ -113,6 +122,7 @@ void render_screen()
     break;
 
   default:
+    screen_id = Screens::MAIN_SCREEN; // return to main screen if unknown screen_id
     break;
   }
 }
@@ -198,12 +208,17 @@ string to_string_rounded(double value, int decimals)
   return move(out).str();
 }
 
-void display_text(int x, int y, const string &text, uint16_t text_color, int text_size, uint16_t bg_color)
+uint8_t display_text(int x, int y, const string &text, uint16_t text_color, int text_size, uint16_t bg_color)
 {
   disp.setCursor(x, y);
   disp.setTextColor(text_color, bg_color);
   disp.setTextSize(text_size);
   disp.print(String(text.c_str()));
+
+  int16_t x1, y1;
+  uint16_t width, height;
+  disp.getTextBounds(String(text.c_str()), x, y, &x1, &y1, &width, &height);
+  return x1 + width; // Return the x-coordinate of the end of the text
 }
 
 void display_wrapped_text(int x, int y, const string &text, int line_end, uint16_t text_color, int text_size, uint16_t bg_color)

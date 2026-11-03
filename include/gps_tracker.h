@@ -2,7 +2,6 @@
 #define GPS_TRACKER_H
 
 #include <Arduino.h>
-#include <SPI.h>
 #include <SD.h>
 #include <string>
 #include <TinyGPSPlus.h>

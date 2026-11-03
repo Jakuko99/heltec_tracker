@@ -396,6 +396,14 @@ void setup()
           {
             boardConfig.tracking_distance = line.substring(18).toFloat();
           }
+          else if (line.startsWith("INSTRUCTION_INTERVAL="))
+          {
+            boardConfig.instruction_interval = line.substring(22).toInt();
+          }
+          else if (line.startsWith("WAYPOINT_INTERVAL="))
+          {
+            boardConfig.waypoint_interval = line.substring(20).toInt();
+          }
           else if (line.startsWith("TRACK_DESC="))
           {
             boardConfig.track_desc = line.substring(11).c_str();
@@ -408,6 +416,7 @@ void setup()
 
         configFile.close();
         tracker.load_config(boardConfig.tracking_distance, boardConfig.tracking_interval, boardConfig.track_desc);
+        navigator.init(boardConfig.instruction_interval, boardConfig.waypoint_interval);
       }
       else
       {
